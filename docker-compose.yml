@@ -20,7 +20,7 @@ services:
 
   app:
     build:
-      context: ./demo
+      context: .
       dockerfile: Dockerfile
     container_name: taskmanager-app
     environment:

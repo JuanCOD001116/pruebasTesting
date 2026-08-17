@@ -1,109 +1,123 @@
 # Task Manager API
 
-API REST para gestionar tareas con Spring Boot 3.3.0, Java 17 y soporte para H2 en desarrollo y PostgreSQL en producción.
+API REST para gestionar tareas con Spring Boot 3.3.0, Java 17, PostgreSQL y soporte Docker.
 
-## Descripción del proyecto
+## Descripcion
 
-Esta aplicación expone CRUD para tareas con validación, manejo de errores centralizado, perfiles de ejecución y pruebas automatizadas.
+Aplicacion CRUD para tareas con validacion, manejo de errores centralizado, perfiles de ejecucion y pruebas automatizadas. Disenada para practicar:
 
-Se diseñó para practicar:
-- Arquitectura en capas
-- Spring Data JPA
+- Arquitectura en capas (Controller / Service / Repository)
+- Spring Data JPA + Flyway
 - DTOs, validaciones y mapeo
 - Excepciones y manejo global
 - Testing con JUnit 5 + Mockito
 - Pruebas de rendimiento
 - Swagger/OpenAPI
+- Docker multi-stage build
 
-## Stack tecnológico
+## Stack tecnologico
 
-- Java 17
-- Spring Boot 3.3.0
-- Spring Web
-- Spring Data JPA
-- Validation
-- Flyway
-- PostgreSQL
-- H2 Database
-- Springdoc OpenAPI UI
-- JUnit 5
-- Mockito
-- Gradle
+| Categoria | Tecnologia |
+|-----------|------------|
+| Lenguaje | Java 17 |
+| Framework | Spring Boot 3.3.0 |
+| Build | Gradle 8.12 |
+| ORM | Spring Data JPA / Hibernate |
+| Migraciones | Flyway |
+| BD produccion | PostgreSQL 15 |
+| BD desarrollo | H2 Database (en memoria) |
+| Documentacion | Springdoc OpenAPI 2.2.0 |
+| Testing | JUnit 5 + Mockito |
+| Contenedor | Docker multi-stage |
 
 ## Estructura del proyecto
 
 ```text
-demo/
+pruebasTesting/
 ├── src/
 │   ├── main/
 │   │   ├── java/com/example/taskmanager/
+│   │   │   ├── TaskManagerApplication.java
 │   │   │   ├── config/
+│   │   │   │   └── OpenApiConfig.java
+│   │   │   ├── model/
+│   │   │   │   ├── Task.java
+│   │   │   │   ├── TaskStatus.java
+│   │   │   │   └── TaskPriority.java
+│   │   │   ├── repository/
+│   │   │   │   └── TaskRepository.java
+│   │   │   ├── service/
+│   │   │   │   ├── TaskService.java
+│   │   │   │   └── impl/
+│   │   │   │       └── TaskServiceImpl.java
 │   │   │   ├── controller/
+│   │   │   │   └── TaskController.java
+│   │   │   ├── mapper/
+│   │   │   │   └── TaskMapper.java
 │   │   │   ├── dto/
 │   │   │   │   ├── request/
+│   │   │   │   │   ├── CreateTaskRequest.java
+│   │   │   │   │   ├── UpdateTaskRequest.java
+│   │   │   │   │   └── PatchTaskStatusRequest.java
 │   │   │   │   └── response/
-│   │   │   ├── exception/
-│   │   │   ├── mapper/
-│   │   │   ├── model/
-│   │   │   ├── repository/
-│   │   │   ├── service/
-│   │   │   │   └── impl/
-│   │   │   └── TaskManagerApplication.java
+│   │   │   │       ├── TaskResponse.java
+│   │   │   │       └── ErrorResponse.java
+│   │   │   └── exception/
+│   │   │       ├── TaskNotFoundException.java
+│   │   │       ├── InvalidTaskStateException.java
+│   │   │       └── GlobalExceptionHandler.java
 │   │   └── resources/
 │   │       ├── application.yml
 │   │       ├── application-dev.yml
 │   │       ├── application-prod.yml
 │   │       └── db/migration/
+│   │           └── V1__Create_tasks_table.sql
 │   └── test/
 │       └── java/com/example/taskmanager/
-│           ├── controller/
+│           ├── service/
+│           │   └── TaskServiceTest.java
 │           ├── mapper/
-│           └── service/
+│           │   └── TaskMapperTest.java
+│           └── controller/
+│               ├── TaskControllerIntegrationTest.java
+│               └── TaskControllerPerformanceTest.java
 ├── build.gradle
-├── gradlew
 ├── settings.gradle
+├── gradlew / gradlew.bat
 ├── Dockerfile
 ├── docker-compose.yml
-├── README.md
-└── .env.example
+├── .dockerignore
+├── .env.example
+└── README.md
 ```
 
 ## Modelo de dominio
 
-La entidad principal es `Task` con estos campos:
+Entidad principal: `Task`
 
-- id
-- title
-- description
-- status
-- priority
-- assignedTo
-- createdAt
-- updatedAt
+| Campo | Tipo | Descripcion |
+|-------|------|-------------|
+| id | Long | Identificador auto-generado |
+| title | String | Obligatorio, max 255 caracteres |
+| description | String | Opcional, max 1000 caracteres |
+| status | TaskStatus | Estado actual de la tarea |
+| priority | TaskPriority | Prioridad de la tarea |
+| assignedTo | String | Opcional, nombre del responsable |
+| createdAt | LocalDateTime | Se establece automaticamente al crear |
+| updatedAt | LocalDateTime | Se actualiza automaticamente en cada modificacion |
 
-Estados soportados:
-- PENDING
-- IN_PROGRESS
-- DONE
-- CANCELLED
+**Estados soportados:** `PENDING`, `IN_PROGRESS`, `DONE`, `CANCELLED`
 
-Prioridades soportadas:
-- LOW
-- MEDIUM
-- HIGH
+**Prioridades soportadas:** `LOW`, `MEDIUM`, `HIGH`
 
-Reglas de negocio aplicadas:
-- El título es obligatorio.
-- No se puede cambiar el estado de una tarea cancelada.
-- La fecha de actualización se actualiza automáticamente en cada modificación.
+**Reglas de negocio:**
+- El titulo es obligatorio.
+- No se puede cambiar el estado de una tarea `CANCELLED` a otro estado.
+- La fecha de actualizacion se actualiza automaticamente via `@PreUpdate`.
 
 ## Endpoints
 
-Base URL:
-
-```text
-http://localhost:8080/api/tasks
-```
+Base URL: `http://localhost:8080/api/tasks`
 
 ### Crear tarea
 
@@ -111,8 +125,6 @@ http://localhost:8080/api/tasks
 POST /api/tasks
 Content-Type: application/json
 ```
-
-Ejemplo:
 
 ```json
 {
@@ -123,39 +135,45 @@ Ejemplo:
 }
 ```
 
+Respuesta: `201 Created`
+
 ### Listar tareas
 
 ```http
 GET /api/tasks
-```
-
-Con filtros opcionales:
-
-```http
 GET /api/tasks?status=PENDING
 GET /api/tasks?priority=HIGH
 GET /api/tasks?status=PENDING&priority=HIGH
 ```
 
-### Obtener por id
+### Obtener tarea por ID
 
 ```http
 GET /api/tasks/{id}
 ```
 
-### Actualizar completa
+### Actualizar tarea (parcial)
 
 ```http
 PUT /api/tasks/{id}
+Content-Type: application/json
 ```
 
-### Actualizar estado
+```json
+{
+  "title": "Nuevo titulo",
+  "priority": "LOW"
+}
+```
+
+Solo los campos enviados se actualizan; los demas permanecen sin cambios.
+
+### Cambiar estado
 
 ```http
 PATCH /api/tasks/{id}/status
+Content-Type: application/json
 ```
-
-Ejemplo:
 
 ```json
 {
@@ -169,274 +187,11 @@ Ejemplo:
 DELETE /api/tasks/{id}
 ```
 
-## Ejecución del proyecto
+Respuesta: `204 No Content`
 
-### Requisitos
+## Formato de errores
 
-- Java 17
-- Gradle
-- Docker (opcional)
-
-### Ejecutar en desarrollo (H2)
-
-```bash
-cd demo
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-./gradlew bootRun --args='--spring.profiles.active=dev'
-```
-
-La app queda disponible en:
-
-```text
-http://localhost:8080
-```
-
-También puedes consultar H2 en:
-
-```text
-http://localhost:8080/h2-console
-```
-
-### Ejecutar en producción (PostgreSQL)
-
-1. Levantar PostgreSQL con Docker Compose:
-
-```bash
-cd demo
-docker-compose up -d
-```
-
-2. Ejecutar la aplicación con perfil prod:
-
-```bash
-./gradlew bootRun --args='--spring.profiles.active=prod'
-```
-
-## Swagger / OpenAPI
-
-Cuando la app está levantada, la documentación interactiva está en:
-
-```text
-http://localhost:8080/swagger-ui.html
-```
-
-La especificación OpenAPI queda en:
-
-```text
-http://localhost:8080/v3/api-docs
-```
-
-## Ejecutar tests
-
-### Todos los tests
-
-```bash
-./gradlew test
-```
-
-### Solo unit tests
-
-```bash
-./gradlew test --tests "*TaskServiceTest" --tests "*TaskMapperTest"
-```
-
-### Tests de controlador
-
-```bash
-./gradlew test --tests "*TaskController*"
-```
-
-## Cómo funcionan los tests
-
-### 1. Unit tests
-
-Los tests unitarios se centran en piezas pequeñas del sistema sin levantar el contexto completo de Spring.
-
-Ejemplo real en [demo/src/test/java/com/example/taskmanager/service/TaskServiceTest.java](demo/src/test/java/com/example/taskmanager/service/TaskServiceTest.java):
-
-- Se mockea el repositorio con Mockito.
-- Se prepara un objeto de prueba (`Task` o `CreateTaskRequest`).
-- Se invoca el método del servicio.
-- Se validan resultados con `assertEquals`, `assertNotNull`, `assertThrows`, etc.
-
-Esto permite comprobar lógica de negocio como:
-- creación correcta de una tarea
-- búsqueda por id
-- actualización de estado
-- error cuando la tarea no existe
-- excepción si una tarea cancelada intenta cambiar de estado
-
-### 2. Tests de performance
-
-Los tests de rendimiento se enfocan en comprobar que una operación no tarda demasiado.
-
-Ejemplo en [demo/src/test/java/com/example/taskmanager/controller/TaskControllerPerformanceTest.java](demo/src/test/java/com/example/taskmanager/controller/TaskControllerPerformanceTest.java):
-
-- se mide el tiempo antes y después de ejecutar el método
-- se ejecuta la operación sobre el controlador mockeado
-- se valida que el tiempo esté por debajo de un umbral razonable
-
-Se usan marcas temporales con `System.currentTimeMillis()` y luego una aserción tipo:
-
-```java
-assertTrue(executionTime < 5000, "Create task took " + executionTime + "ms");
-```
-
-Esto sirve para detectar regresiones de rendimiento sin convertir los tests en pruebas frágiles.
-
-### 3. Patrón AAA
-
-El patrón AAA significa:
-- Arrange: preparar datos y mocks
-- Act: ejecutar la acción bajo prueba
-- Assert: comprobar la salida esperada
-
-Se usa de forma consistente en la suite. Por ejemplo:
-
-```java
-@BeforeEach
-void setUp() {
-    // Arrange
-    createRequest = CreateTaskRequest.builder()
-            .title("Test Task")
-            .description("Test Description")
-            .priority(TaskPriority.HIGH)
-            .assignedTo("John Doe")
-            .build();
-}
-
-@Test
-void shouldCreateTaskSuccessfully() {
-    // Arrange
-    when(taskRepository.save(any(Task.class))).thenReturn(savedTask);
-
-    // Act
-    TaskResponse response = taskService.createTask(createRequest);
-
-    // Assert
-    assertNotNull(response);
-    assertEquals(savedTask.getId(), response.getId());
-    assertEquals(createRequest.getTitle(), response.getTitle());
-}
-```
-
-Este patrón ayuda a que los tests sean más legibles, más mantenibles y más fáciles de depurar cuando falla uno.
-
-## Base de datos
-
-### Perfil dev
-
-- H2 en memoria
-- Se crea el esquema de forma automática
-- Útil para desarrollar y probar sin levantar PostgreSQL
-
-### Perfil prod
-
-- PostgreSQL
-- Se usa Flyway para migraciones
-
-## Docker
-
-Construir imagen:
-
-```bash
-docker build -t task-manager-api:1.0.0 .
-```
-
-Levantar con docker-compose:
-
-```bash
-docker-compose up --build
-```
-
-## Observaciones finales
-
-Este proyecto sirve como ejemplo claro de una API REST con capas bien separadas, validación, manejo de errores y una batería de tests que cubre lógica, integración y rendimiento.
-
-Si quieres avanzar el siguiente nivel, el siguiente paso natural es añadir:
-- más tests de casos límite
-- cobertura de Jacoco
-- autenticación JWT
-- paginación de resultados
-- CI con GitHub Actions
-
-
-### Run with Docker:
-
-```bash
-# With H2 (dev profile)
-docker run -p 8080:8080 -e SPRING_PROFILES_ACTIVE=dev task-manager-api:1.0.0
-
-# With PostgreSQL (prod profile)
-docker run -p 8080:8080 \
-  -e SPRING_PROFILES_ACTIVE=prod \
-  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/taskmanager \
-  -e SPRING_DATASOURCE_USERNAME=postgres \
-  -e SPRING_DATASOURCE_PASSWORD=postgres \
-  task-manager-api:1.0.0
-```
-
-## Example API Usage
-
-### Create a Task
-
-```bash
-curl -X POST http://localhost:8080/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Complete project documentation",
-    "description": "Write comprehensive API documentation",
-    "priority": "HIGH",
-    "assignedTo": "John Doe"
-  }'
-```
-
-### Get All Tasks
-
-```bash
-curl http://localhost:8080/api/tasks
-```
-
-### Get Tasks by Status
-
-```bash
-curl http://localhost:8080/api/tasks?status=PENDING
-```
-
-### Get a Task by ID
-
-```bash
-curl http://localhost:8080/api/tasks/1
-```
-
-### Update a Task
-
-```bash
-curl -X PUT http://localhost:8080/api/tasks/1 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Updated title",
-    "priority": "MEDIUM"
-  }'
-```
-
-### Update Task Status
-
-```bash
-curl -X PATCH http://localhost:8080/api/tasks/1/status \
-  -H "Content-Type: application/json" \
-  -d '{"status": "IN_PROGRESS"}'
-```
-
-### Delete a Task
-
-```bash
-curl -X DELETE http://localhost:8080/api/tasks/1
-```
-
-## Error Handling
-
-All errors return standardized JSON responses:
+Todos los errores retornan una respuesta JSON estandarizada:
 
 ```json
 {
@@ -447,91 +202,162 @@ All errors return standardized JSON responses:
 }
 ```
 
-### Common HTTP Status Codes
+| HTTP Status | Significado |
+|-------------|-------------|
+| 200 | Exito |
+| 201 | Recurso creado |
+| 204 | Eliminacion exitosa |
+| 400 | Input invalido o regla de negocio violada |
+| 404 | Recurso no encontrado |
+| 500 | Error interno del servidor |
 
-- `200 OK` - Successful request
-- `201 Created` - Resource created successfully
-- `204 No Content` - Successful deletion
-- `400 Bad Request` - Invalid input or business rule violation
-- `404 Not Found` - Resource not found
-- `500 Internal Server Error` - Unexpected server error
+## Ejecucion
 
-## Testing Patterns
+### Requisitos
 
-All tests follow the **AAA (Arrange-Act-Assert)** pattern:
+- Java 17
+- Gradle (incluido via wrapper)
+- Docker + Docker Compose (opcional)
 
-```java
-@Test
-void shouldCreateTaskSuccessfully() {
-    // Arrange
-    CreateTaskRequest request = CreateTaskRequest.builder()
-        .title("New Task")
-        .build();
-    
-    // Act
-    TaskResponse response = taskService.createTask(request);
-    
-    // Assert
-    assertNotNull(response);
-    assertEquals("New Task", response.getTitle());
-}
-```
-
-## Performance Benchmarks
-
-Performance tests validate that critical operations complete within acceptable timeframes:
-
-- **Create Task**: < 500ms
-- **Get Single Task**: < 200ms
-- **Get All Tasks**: < 500ms
-
-These thresholds are tested in `TaskControllerPerformanceTest`
-
-## Troubleshooting
-
-### Gradle Build Issues
+### Desarrollo local (H2 en memoria)
 
 ```bash
-./gradlew clean
-./gradlew build
+./gradlew bootRun --args='--spring.profiles.active=dev'
 ```
 
-### Port Already in Use
+La app queda disponible en `http://localhost:8080`.
+
+Consola H2 disponible en `http://localhost:8080/h2-console`.
+
+### Produccion con Docker Compose
+
+Levanta PostgreSQL y la app juntos:
 
 ```bash
-# Change port in application.yml
-server:
-  port: 8081
+docker compose up -build
 ```
 
-### H2 Console Not Accessible
+La app queda en `http://localhost:8080` y PostgreSQL en el puerto `5432`.
 
-Ensure H2 is enabled in `application-dev.yml`:
-```yaml
-spring:
-  h2:
-    console:
-      enabled: true
+Para detener:
+
+```bash
+docker compose down
 ```
 
-### PostgreSQL Connection Errors
+Para eliminar la base de datos:
 
-1. Verify PostgreSQL is running
-2. Check credentials in environment variables
-3. Ensure database `taskmanager` exists
+```bash
+docker compose down -v
+```
 
-## Contributing
+### Solo la imagen Docker
 
-When contributing code:
-1. Follow Google Java Style Guide
-2. Write tests following AAA pattern
-3. Maintain > 80% test coverage in service layer
-4. Document new endpoints in Swagger annotations
+```bash
+docker build -t task-manager-api:1.0.0 .
+docker run -p 8080:8080 \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/taskmanager \
+  -e SPRING_DATASOURCE_USERNAME=postgres \
+  -e SPRING_DATASOURCE_PASSWORD=postgres \
+  task-manager-api:1.0.0
+```
+
+### Variables de entorno
+
+Ver [.env.example](.env.example) para las variables disponibles.
+
+## Swagger / OpenAPI
+
+Con la app levantada:
+
+- UI: `http://localhost:8080/swagger-ui.html`
+- Spec JSON: `http://localhost:8080/v3/api-docs`
+
+## Ejecutar tests
+
+```bash
+# Todos los tests
+./gradlew test
+
+# Solo unit tests (servicio + mapper)
+./gradlew test --tests "*TaskServiceTest" --tests "*TaskMapperTest"
+
+# Tests de controlador
+./gradlew test --tests "*TaskControllerIntegrationTest"
+
+# Tests de rendimiento
+./gradlew test --tests "*TaskControllerPerformanceTest"
+```
+
+## Como funcionan los tests
+
+Se siguen dos tipos de pruebas, ambas bajo el patron **AAA (Arrange-Act-Assert)**.
+
+### Unit tests
+
+Se centran en piezas pequenas del sistema sin levantar el contexto de Spring.
+
+**`TaskServiceTest`** (10 tests) - Mockea el repositorio con Mockito y valida:
+- Creacion correcta de tareas
+- Busqueda por ID
+- Actualizacion de estado
+- Error cuando la tarea no existe
+- Excepcion si una tarea cancelada intenta cambiar de estado
+- Eliminacion exitosa y manejo de ID inexistente
+
+**`TaskMapperTest`** (4 tests) - Valida la conversion DTO <-> Entity:
+- CreateTaskRequest a entity (status default PENDING)
+- UpdateTaskRequest aplica solo campos no nulos
+- Task entity a TaskResponse
+
+### Tests de integracion del controlador
+
+**`TaskControllerIntegrationTest`** (4 tests) - Mockea el servicio y valida el comportamiento HTTP:
+- POST retorna 201 con body correcto
+- GET retorna 200 con lista
+- GET con ID inexistente propagna excepcion
+- DELETE retorna 204
+
+### Tests de rendimiento
+
+**`TaskControllerPerformanceTest`** (2 tests) - Mide tiempo de ejecucion de operaciones criticas y valida que no excedan umbrales razonables (< 5000ms).
+
+## Base de datos
+
+### Perfil dev
+
+- H2 en memoria
+- Esquema creado automaticamente con `ddl-auto: create-drop`
+- Consola H2 habilitada
+
+### Perfil prod
+
+- PostgreSQL
+- Migraciones via Flyway (`db/migration/V1__Create_tasks_table.sql`)
+- Esquema validado con `ddl-auto: validate`
+
+## Arquitectura
+
+El proyecto sigue un patron de arquitectura en capas:
+
+```
+Controller (recibe HTTP)
+    ↓
+Service (logica de negocio)
+    ↓
+Repository (acceso a datos via JPA)
+    ↓
+Database (PostgreSQL / H2)
+```
+
+**Patrones de diseno aplicados:**
+- **DTO** - Separacion de modelos de entrada/salida de la entidad JPA
+- **Repository** - Abstraccion del acceso a datos
+- **Dependency Injection** - Inyeccion via constructor con Lombok `@RequiredArgsConstructor`
+- **Global Exception Handler** - Manejo centralizado de errores via `@RestControllerAdvice`
+- **Mapper** - Conversion entre DTOs y entidades
+- **Transactional** - Transacciones gestionadas en la capa de servicio
 
 ## License
 
 Apache License 2.0
-
-## Support
-
-For issues, questions, or suggestions, please refer to the project documentation or open an issue in the repository.
