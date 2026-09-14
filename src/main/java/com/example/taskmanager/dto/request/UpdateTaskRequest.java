@@ -1,6 +1,7 @@
 package com.example.taskmanager.dto.request;
 
 import com.example.taskmanager.model.TaskPriority;
+import com.example.taskmanager.model.TaskStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,6 +18,8 @@ public class UpdateTaskRequest {
     private String description;
 
     private TaskPriority priority;
+
+    private TaskStatus status;
 
     private String assignedTo;
 }

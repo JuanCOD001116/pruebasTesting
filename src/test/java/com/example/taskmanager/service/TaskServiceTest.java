@@ -10,6 +10,7 @@ import com.example.taskmanager.model.TaskPriority;
 import com.example.taskmanager.model.TaskStatus;
 import com.example.taskmanager.repository.TaskRepository;
 import com.example.taskmanager.service.impl.TaskServiceImpl;
+import com.example.taskmanager.service.validation.TaskStatusTransitionValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +31,9 @@ class TaskServiceTest {
 
     @Mock
     private TaskRepository taskRepository;
+
+    @Mock
+    private TaskStatusTransitionValidator taskStatusTransitionValidator;
 
     @InjectMocks
     private TaskServiceImpl taskService;
@@ -133,6 +137,48 @@ class TaskServiceTest {
     }
 
     @Test
+    void shouldGetTasksByStatusSuccessfully() {
+        // Arrange
+        when(taskRepository.findByStatus(TaskStatus.PENDING)).thenReturn(Arrays.asList(testTask));
+
+        // Act
+        var response = taskService.getTasksByStatus(TaskStatus.PENDING);
+
+        // Assert
+        assertEquals(1, response.size());
+        verify(taskRepository, times(1)).findByStatus(TaskStatus.PENDING);
+    }
+
+    @Test
+    void shouldGetTasksByPrioritySuccessfully() {
+        // Arrange
+        when(taskRepository.findByPriority(TaskPriority.MEDIUM)).thenReturn(Arrays.asList(testTask));
+
+        // Act
+        var response = taskService.getTasksByPriority(TaskPriority.MEDIUM);
+
+        // Assert
+        assertEquals(1, response.size());
+        verify(taskRepository, times(1)).findByPriority(TaskPriority.MEDIUM);
+    }
+
+    @Test
+    void shouldGetTasksByStatusAndPrioritySuccessfully() {
+        // Arrange
+        when(taskRepository.findByStatusAndPriority(TaskStatus.PENDING, TaskPriority.MEDIUM))
+                .thenReturn(Arrays.asList(testTask));
+
+        // Act
+        var response = taskService.getTasksByStatusAndPriority(
+                TaskStatus.PENDING, TaskPriority.MEDIUM);
+
+        // Assert
+        assertEquals(1, response.size());
+        verify(taskRepository, times(1))
+                .findByStatusAndPriority(TaskStatus.PENDING, TaskPriority.MEDIUM);
+    }
+
+    @Test
     void shouldUpdateTaskSuccessfully() {
         // Arrange
         when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
@@ -171,6 +217,8 @@ class TaskServiceTest {
         assertNotNull(response);
         assertEquals(testTask.getId(), response.getId());
         verify(taskRepository, times(1)).findById(1L);
+        verify(taskStatusTransitionValidator, times(1))
+            .validate(TaskStatus.PENDING, TaskStatus.IN_PROGRESS, "John Doe");
         verify(taskRepository, times(1)).save(any(Task.class));
     }
 
@@ -179,6 +227,9 @@ class TaskServiceTest {
         // Arrange
         testTask.setStatus(TaskStatus.CANCELLED);
         when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        doThrow(new InvalidTaskStateException("invalid transition"))
+            .when(taskStatusTransitionValidator)
+            .validate(TaskStatus.CANCELLED, TaskStatus.PENDING, "John Doe");
 
         // Act & Assert
         assertThrows(InvalidTaskStateException.class, 
