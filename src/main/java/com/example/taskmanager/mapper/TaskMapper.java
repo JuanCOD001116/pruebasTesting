@@ -28,6 +28,9 @@ public class TaskMapper {
         if (request.getPriority() != null) {
             existingTask.setPriority(request.getPriority());
         }
+        if (request.getStatus() != null) {
+            existingTask.setStatus(request.getStatus());
+        }
         if (request.getAssignedTo() != null) {
             existingTask.setAssignedTo(request.getAssignedTo());
         }

@@ -3,7 +3,6 @@ package com.example.taskmanager.service.impl;
 import com.example.taskmanager.dto.request.CreateTaskRequest;
 import com.example.taskmanager.dto.request.UpdateTaskRequest;
 import com.example.taskmanager.dto.response.TaskResponse;
-import com.example.taskmanager.exception.InvalidTaskStateException;
 import com.example.taskmanager.exception.TaskNotFoundException;
 import com.example.taskmanager.mapper.TaskMapper;
 import com.example.taskmanager.model.Task;
@@ -11,6 +10,7 @@ import com.example.taskmanager.model.TaskPriority;
 import com.example.taskmanager.model.TaskStatus;
 import com.example.taskmanager.repository.TaskRepository;
 import com.example.taskmanager.service.TaskService;
+import com.example.taskmanager.service.validation.TaskStatusTransitionValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
+    private final TaskStatusTransitionValidator taskStatusTransitionValidator;
 
     @Override
     public TaskResponse createTask(CreateTaskRequest request) {
@@ -96,7 +97,11 @@ public class TaskServiceImpl implements TaskService {
                     log.error("Task not found with id: {}", id);
                     return new TaskNotFoundException(id);
                 });
-        
+            if (request.getStatus() != null && request.getStatus() != task.getStatus()) {
+                taskStatusTransitionValidator.validate(
+                    task.getStatus(), request.getStatus(), request.getAssignedTo() != null
+                        ? request.getAssignedTo() : task.getAssignedTo());
+            }
         Task updatedTask = TaskMapper.toEntity(request, task);
         Task savedTask = taskRepository.save(updatedTask);
         log.info("Task updated successfully with id: {}", savedTask.getId());
@@ -112,12 +117,7 @@ public class TaskServiceImpl implements TaskService {
                     return new TaskNotFoundException(id);
                 });
         
-        // Business rule: cannot change status from CANCELLED to another status
-        if (task.getStatus() == TaskStatus.CANCELLED && newStatus != TaskStatus.CANCELLED) {
-            log.error("Cannot change status from CANCELLED to {} for task id: {}", newStatus, id);
-            throw new InvalidTaskStateException("Cannot change status of a cancelled task");
-        }
-        
+        taskStatusTransitionValidator.validate(task.getStatus(), newStatus, task.getAssignedTo());
         task.setStatus(newStatus);
         Task savedTask = taskRepository.save(task);
         log.info("Task status updated successfully with id: {}", savedTask.getId());
