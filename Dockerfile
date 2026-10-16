@@ -5,7 +5,6 @@ WORKDIR /app
 
 # Copy gradle wrapper and build files
 COPY gradlew .
-COPY gradlew.bat .
 COPY gradle gradle
 COPY build.gradle .
 COPY settings.gradle .
@@ -21,8 +20,12 @@ FROM eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
 
+RUN addgroup -S app && adduser -S app -G app
+
 # Copy the JAR file from the builder stage
 COPY --from=builder /app/build/libs/task-manager-api.jar app.jar
+
+USER app
 
 # Expose the port
 EXPOSE 8080
