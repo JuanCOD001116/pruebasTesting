@@ -3,6 +3,7 @@ plugins {
 	id 'org.springframework.boot' version '3.3.0'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'jacoco'
+	id 'org.sonarqube' version '6.0.1.5171'
 }
 
 group = 'com.example.taskmanager'
@@ -60,15 +61,27 @@ jacoco {
 	toolVersion = '0.8.12'
 }
 
+def coverageExclusions = [
+	'**/TaskManagerApplication.class',
+	'**/config/**',
+	'**/dto/**',
+	'**/exception/*Exception.class'
+]
+
 jacocoTestReport {
 	dependsOn test
 	reports {
 		xml.required = true
 		html.required = true
 	}
+	classDirectories.setFrom(files(classDirectories.files.collect {
+		fileTree(dir: it, exclude: coverageExclusions)
+	}))
 }
 
 jacocoTestCoverageVerification {
+	dependsOn jacocoTestReport
+	classDirectories.setFrom(jacocoTestReport.classDirectories)
 	violationRules {
 		rule {
 			element = 'CLASS'
@@ -90,3 +103,22 @@ jacocoTestCoverageVerification {
 }
 
 check.dependsOn jacocoTestCoverageVerification
+
+sonar {
+	properties {
+		property 'sonar.projectKey', 'JuanCOD001116_pruebasTesting'
+		property 'sonar.organization', 'juancod001116'
+		property 'sonar.host.url', 'https://sonarcloud.io'
+		property 'sonar.projectName', 'Task Manager API'
+		property 'sonar.java.source', '17'
+		property 'sonar.coverage.jacoco.xmlReportPaths',
+				"${layout.buildDirectory.get()}/reports/jacoco/test/jacocoTestReport.xml"
+		property 'sonar.coverage.exclusions',
+				'**/TaskManagerApplication.java,**/config/**,**/dto/**,**/exception/*Exception.java'
+		property 'sonar.qualitygate.wait', 'true'
+	}
+}
+
+tasks.named('sonar') {
+	dependsOn jacocoTestReport
+}

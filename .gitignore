@@ -11,6 +11,7 @@
 *.ipr
 *.iws
 *.class
+bin/
 
 # OS files
 .DS_Store
