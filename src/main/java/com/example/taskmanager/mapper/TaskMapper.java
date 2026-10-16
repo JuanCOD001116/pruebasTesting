@@ -6,6 +6,8 @@ import com.example.taskmanager.dto.response.TaskResponse;
 import com.example.taskmanager.model.Task;
 import lombok.experimental.UtilityClass;
 
+import java.util.function.Consumer;
+
 @UtilityClass
 public class TaskMapper {
 
@@ -19,22 +21,18 @@ public class TaskMapper {
     }
 
     public Task toEntity(UpdateTaskRequest request, Task existingTask) {
-        if (request.getTitle() != null) {
-            existingTask.setTitle(request.getTitle());
-        }
-        if (request.getDescription() != null) {
-            existingTask.setDescription(request.getDescription());
-        }
-        if (request.getPriority() != null) {
-            existingTask.setPriority(request.getPriority());
-        }
-        if (request.getStatus() != null) {
-            existingTask.setStatus(request.getStatus());
-        }
-        if (request.getAssignedTo() != null) {
-            existingTask.setAssignedTo(request.getAssignedTo());
-        }
+        applyIfPresent(request.getTitle(), existingTask::setTitle);
+        applyIfPresent(request.getDescription(), existingTask::setDescription);
+        applyIfPresent(request.getPriority(), existingTask::setPriority);
+        applyIfPresent(request.getStatus(), existingTask::setStatus);
+        applyIfPresent(request.getAssignedTo(), existingTask::setAssignedTo);
         return existingTask;
+    }
+
+    private static <T> void applyIfPresent(T value, Consumer<T> setter) {
+        if (value != null) {
+            setter.accept(value);
+        }
     }
 
     public TaskResponse toResponse(Task task) {

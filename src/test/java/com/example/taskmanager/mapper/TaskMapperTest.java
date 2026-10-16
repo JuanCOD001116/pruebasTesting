@@ -7,11 +7,13 @@ import com.example.taskmanager.model.Task;
 import com.example.taskmanager.model.TaskPriority;
 import com.example.taskmanager.model.TaskStatus;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class TaskMapperTest {
 
@@ -47,6 +49,7 @@ class TaskMapperTest {
     }
 
     @Test
+    @DisplayName("Dado un CreateTaskRequest valido, cuando se mapea a entidad, entonces los campos coinciden")
     void shouldConvertCreateTaskRequestToEntity() {
         // Arrange & Act
         Task entity = TaskMapper.toEntity(createRequest);
@@ -61,6 +64,7 @@ class TaskMapperTest {
     }
 
     @Test
+    @DisplayName("Dado un UpdateTaskRequest valido, cuando se actualiza la entidad, entonces los campos provistos se actualizan")
     void shouldConvertUpdateTaskRequestToEntity() {
         // Arrange & Act
         Task updatedEntity = TaskMapper.toEntity(updateRequest, testTask);
@@ -73,6 +77,7 @@ class TaskMapperTest {
     }
 
     @Test
+    @DisplayName("Dada una entidad Task, cuando se mapea a respuesta, entonces todos los campos coinciden")
     void shouldConvertTaskEntityToResponse() {
         // Arrange & Act
         TaskResponse response = TaskMapper.toResponse(testTask);
@@ -90,6 +95,7 @@ class TaskMapperTest {
     }
 
     @Test
+    @DisplayName("Dado un UpdateTaskRequest parcial, cuando se actualiza, entonces solo los campos presentes cambian")
     void shouldUpdateOnlyProvidedFieldsInUpdateRequest() {
         // Arrange
         UpdateTaskRequest partialUpdate = UpdateTaskRequest.builder()
