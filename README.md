@@ -1,55 +1,69 @@
 # Task Manager API
 
-API REST para gestionar tareas con Spring Boot 3.3.0, Java 17, PostgreSQL y soporte Docker.
+API REST para gestionar tareas construida con Spring Boot 3.3.0, Java 17, PostgreSQL y soporte Docker.
 
-## Descripcion
+## Descripción
 
-Aplicacion CRUD para tareas con validacion, manejo de errores centralizado, perfiles de ejecucion y pruebas automatizadas. Disenada para practicar:
+Aplicación para la gestión del ciclo de vida de tareas con validación estricta, manejo de errores centralizado, auditoría JPA, perfiles de ejecución y pruebas automatizadas. Diseñada para aplicar:
 
-- Arquitectura en capas (Controller / Service / Repository)
-- Spring Data JPA + Flyway
-- DTOs, validaciones y mapeo
-- Excepciones y manejo global
-- Testing con JUnit 5 + Mockito
-- Pruebas de rendimiento
-- Swagger/OpenAPI
-- Docker multi-stage build
+- Arquitectura en capas limpia (Controller / Service / Repository)
+- Spring Data JPA + Flyway (esquema unificado y validado con `ddl-auto: validate`)
+- DTOs inmutables, validaciones personalizadas Bean Validation y mapeo
+- Excepciones de negocio y manejo global seguro (`GlobalExceptionHandler`)
+- Testing exhaustivo con JUnit 5 + Mockito siguiendo el patrón AAA
+- Pruebas de rendimiento con límites de tiempo (`assertTimeout`)
+- Documentación viva con Swagger / OpenAPI
+- Contenedores Docker multi-stage y ejecución sin privilegios de root
+- Análisis estático continuo con SonarCloud y cobertura de código con JaCoCo
 
-## Stack tecnologico
+## Stack tecnológico
 
-| Categoria | Tecnologia |
+| Categoría | Tecnología |
 |-----------|------------|
 | Lenguaje | Java 17 |
 | Framework | Spring Boot 3.3.0 |
-| Build | Gradle 8.12 |
-| ORM | Spring Data JPA / Hibernate |
+| Build Tool | Gradle 8.12 |
+| ORM | Spring Data JPA / Hibernate 6 |
 | Migraciones | Flyway |
-| BD produccion | PostgreSQL 15 |
-| BD desarrollo | H2 Database (en memoria) |
-| Documentacion | Springdoc OpenAPI 2.2.0 |
-| Testing | JUnit 5 + Mockito |
-| Contenedor | Docker multi-stage |
+| BD producción | PostgreSQL 15 |
+| BD desarrollo | H2 Database (modo compatibilidad PostgreSQL) |
+| Documentación | Springdoc OpenAPI 2.6.0 |
+| Métricas / Salud | Spring Boot Starter Actuator |
+| Testing | JUnit 5 + Mockito + MockMvc |
+| Calidad de Código | SonarCloud + JaCoCo 0.8.12 |
+| Contenedores | Docker (Alpine, usuario sin privilegios) + Docker Compose |
 
 ## Estructura del proyecto
 
 ```text
 pruebasTesting/
+├── .github/
+│   └── workflows/
+│       └── sonarcloud.yml             # Workflow de CI con análisis de SonarCloud
+├── quality/
+│   └── sonar/
+│       ├── quality-gate.md            # Definición documentada del Quality Gate
+│       └── taskmanager-java-way.xml   # Backup del Quality Profile
 ├── src/
 │   ├── main/
 │   │   ├── java/com/example/taskmanager/
 │   │   │   ├── TaskManagerApplication.java
 │   │   │   ├── config/
-│   │   │   │   └── OpenApiConfig.java
+│   │   │   │   ├── ClockConfig.java           # Reloj inyectable para lógica temporal determinista
+│   │   │   │   ├── JpaAuditingConfig.java     # Configuración de auditoría JPA
+│   │   │   │   └── OpenApiConfig.java         # Configuración Swagger / OpenAPI
 │   │   │   ├── model/
-│   │   │   │   ├── Task.java
+│   │   │   │   ├── Task.java                  # Entidad JPA con equals/hashCode basados en ID
 │   │   │   │   ├── TaskStatus.java
 │   │   │   │   └── TaskPriority.java
 │   │   │   ├── repository/
 │   │   │   │   └── TaskRepository.java
 │   │   │   ├── service/
 │   │   │   │   ├── TaskService.java
-│   │   │   │   └── impl/
-│   │   │   │       └── TaskServiceImpl.java
+│   │   │   │   ├── impl/
+│   │   │   │   │   └── TaskServiceImpl.java
+│   │   │   │   └── validation/
+│   │   │   │       └── TaskStatusTransitionValidator.java  # Matriz de estados y transiciones
 │   │   │   ├── controller/
 │   │   │   │   └── TaskController.java
 │   │   │   ├── mapper/
@@ -59,12 +73,16 @@ pruebasTesting/
 │   │   │   │   │   ├── CreateTaskRequest.java
 │   │   │   │   │   ├── UpdateTaskRequest.java
 │   │   │   │   │   └── PatchTaskStatusRequest.java
-│   │   │   │   └── response/
-│   │   │   │       ├── TaskResponse.java
-│   │   │   │       └── ErrorResponse.java
+│   │   │   │   ├── response/
+│   │   │   │   │   ├── TaskResponse.java
+│   │   │   │   │   └── ErrorResponse.java
+│   │   │   │   └── validation/
+│   │   │   │       ├── NullOrNotBlank.java            # Anotación para campos opcionales no vacíos
+│   │   │   │       └── NullOrNotBlankValidator.java   # Validador personalizado
 │   │   │   └── exception/
 │   │   │       ├── TaskNotFoundException.java
 │   │   │       ├── InvalidTaskStateException.java
+│   │   │       ├── InvalidTaskDataException.java
 │   │   │       └── GlobalExceptionHandler.java
 │   │   └── resources/
 │   │       ├── application.yml
@@ -74,19 +92,29 @@ pruebasTesting/
 │   │           └── V1__Create_tasks_table.sql
 │   └── test/
 │       └── java/com/example/taskmanager/
-│           ├── service/
-│           │   └── TaskServiceTest.java
+│           ├── controller/
+│           │   ├── ActuatorHealthIntegrationTest.java
+│           │   ├── TaskControllerPerformanceTest.java
+│           │   ├── TaskControllerTest.java
+│           │   └── TaskStatusTransitionControllerIntegrationTest.java
+│           ├── dto/
+│           │   └── validation/
+│           │       └── NullOrNotBlankValidatorTest.java
+│           ├── exception/
+│           │   └── GlobalExceptionHandlerIntegrationTest.java
 │           ├── mapper/
 │           │   └── TaskMapperTest.java
-│           └── controller/
-│               ├── TaskControllerIntegrationTest.java
-│               └── TaskControllerPerformanceTest.java
+│           ├── model/
+│           │   └── TaskTest.java
+│           └── service/
+│               ├── TaskServiceTest.java
+│               └── validation/
+│                   └── TaskStatusTransitionValidatorTest.java
 ├── build.gradle
 ├── settings.gradle
-├── gradlew / gradlew.bat
-├── Dockerfile
+├── lombok.config                       # Exclusión de código generado por Lombok de JaCoCo
+├── Dockerfile                         # Multi-stage build con usuario app
 ├── docker-compose.yml
-├── .dockerignore
 ├── .env.example
 └── README.md
 ```
@@ -95,129 +123,48 @@ pruebasTesting/
 
 Entidad principal: `Task`
 
-| Campo | Tipo | Descripcion |
+| Campo | Tipo | Descripción |
 |-------|------|-------------|
 | id | Long | Identificador auto-generado |
-| title | String | Obligatorio, max 255 caracteres |
-| description | String | Opcional, max 1000 caracteres |
-| status | TaskStatus | Estado actual de la tarea |
-| priority | TaskPriority | Prioridad de la tarea |
-| assignedTo | String | Opcional, nombre del responsable |
-| createdAt | LocalDateTime | Se establece automaticamente al crear |
-| updatedAt | LocalDateTime | Se actualiza automaticamente en cada modificacion |
+| title | String | Título (1-255 caracteres, obligatorio) |
+| description | String | Descripción (hasta 1000 caracteres, opcional) |
+| status | TaskStatus | `PENDING`, `IN_PROGRESS`, `DONE`, `CANCELLED` |
+| priority | TaskPriority | `LOW`, `MEDIUM`, `HIGH` (default: `MEDIUM`) |
+| assignedTo | String | Usuario asignado (opcional, obligatorio para pasar a `IN_PROGRESS`) |
+| createdAt | LocalDateTime | Fecha y hora de creación (gestionada por auditoría JPA) |
+| updatedAt | LocalDateTime | Fecha y hora de última modificación (gestionada por auditoría JPA) |
 
-**Estados soportados:** `PENDING`, `IN_PROGRESS`, `DONE`, `CANCELLED`
+## Endpoints de la API
 
-**Prioridades soportadas:** `LOW`, `MEDIUM`, `HIGH`
+### Endpoints actuales (CRUD de tareas)
 
-**Reglas de negocio:**
-- El titulo es obligatorio.
-- No se puede cambiar el estado de una tarea `CANCELLED` a otro estado.
-- La fecha de actualizacion se actualiza automaticamente via `@PreUpdate`.
+| Método | Endpoint | Descripción | Códigos HTTP |
+|--------|----------|-------------|--------------|
+| POST | `/api/tasks` | Crear una nueva tarea | 201, 400 |
+| GET | `/api/tasks` | Listar todas las tareas (filtros opcionales) | 200 |
+| GET | `/api/tasks/{id}` | Obtener una tarea por ID | 200, 404 |
+| PUT | `/api/tasks/{id}` | Actualizar datos y/o estado de la tarea | 200, 400, 404 |
+| PATCH | `/api/tasks/{id}/status` | Cambiar únicamente el estado de la tarea | 200, 400, 404 |
+| DELETE | `/api/tasks/{id}` | Eliminar una tarea | 204, 404 |
+| GET | `/actuator/health` | Estado de salud de la aplicación | 200 |
 
-## Endpoints
+### Nuevos endpoints en desarrollo (F1 – F3)
 
-Base URL: `http://localhost:8080/api/tasks`
+- **F1 — Fecha límite y urgencia:**
+  - `dueDate` en `CreateTaskRequest`, `UpdateTaskRequest` y `TaskResponse`.
+  - Atributo calculado `urgency` (`NONE`, `ON_TRACK`, `AT_RISK`, `OVERDUE`).
+- **F2 — Búsqueda paginada con Specification Pattern:**
+  - `GET /api/tasks?status=...&priority=...&assignedTo=...&text=...&dueFrom=...&dueTo=...&overdue=...`
+  - `GET /api/tasks/search?page=0&size=20&sort=createdAt,desc` → respuesta estructurada `PageResponse<TaskResponse>`.
+- **F3 — Resumen estadístico:**
+  - `GET /api/tasks/summary` → `TaskSummaryResponse` con métricas de totales, desglose por estado/prioridad, tasa de completitud y tareas vencidas.
 
-### Crear tarea
-
-```http
-POST /api/tasks
-Content-Type: application/json
-```
-
-```json
-{
-  "title": "Revisar pull request",
-  "description": "Comprobar cambios antes del merge",
-  "priority": "HIGH",
-  "assignedTo": "Juan"
-}
-```
-
-Respuesta: `201 Created`
-
-### Listar tareas
-
-```http
-GET /api/tasks
-GET /api/tasks?status=PENDING
-GET /api/tasks?priority=HIGH
-GET /api/tasks?status=PENDING&priority=HIGH
-```
-
-### Obtener tarea por ID
-
-```http
-GET /api/tasks/{id}
-```
-
-### Actualizar tarea (parcial)
-
-```http
-PUT /api/tasks/{id}
-Content-Type: application/json
-```
-
-```json
-{
-  "title": "Nuevo titulo",
-  "priority": "LOW"
-}
-```
-
-Solo los campos enviados se actualizan; los demas permanecen sin cambios.
-
-### Cambiar estado
-
-```http
-PATCH /api/tasks/{id}/status
-Content-Type: application/json
-```
-
-```json
-{
-  "status": "IN_PROGRESS"
-}
-```
-
-### Eliminar tarea
-
-```http
-DELETE /api/tasks/{id}
-```
-
-Respuesta: `204 No Content`
-
-## Formato de errores
-
-Todos los errores retornan una respuesta JSON estandarizada:
-
-```json
-{
-  "code": 404,
-  "message": "Task not found with id: 1",
-  "timestamp": "2026-08-17T10:30:45",
-  "path": "/api/tasks/1"
-}
-```
-
-| HTTP Status | Significado |
-|-------------|-------------|
-| 200 | Exito |
-| 201 | Recurso creado |
-| 204 | Eliminacion exitosa |
-| 400 | Input invalido o regla de negocio violada |
-| 404 | Recurso no encontrado |
-| 500 | Error interno del servidor |
-
-## Ejecucion
+## Ejecución del proyecto
 
 ### Requisitos
 
-- Java 17
-- Gradle (incluido via wrapper)
-- Docker + Docker Compose (opcional)
+- Java 17 (JDK)
+- Docker y Docker Compose (para ejecución en contenedores)
 
 ### Desarrollo local (H2 en memoria)
 
@@ -225,139 +172,86 @@ Todos los errores retornan una respuesta JSON estandarizada:
 ./gradlew bootRun --args='--spring.profiles.active=dev'
 ```
 
-La app queda disponible en `http://localhost:8080`.
+- API disponible en: `http://localhost:8080`
+- Consola H2: `http://localhost:8080/h2-console`
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+- Healthcheck: `http://localhost:8080/actuator/health`
 
-Consola H2 disponible en `http://localhost:8080/h2-console`.
+### Producción con Docker Compose
 
-### Produccion con Docker Compose
-
-Levanta PostgreSQL y la app juntos:
-
+1. Configurar variables de entorno desde la plantilla:
 ```bash
-docker compose up -build
+cp .env.example .env
+# Editar contraseñas seguras en .env
 ```
 
-La app queda en `http://localhost:8080` y PostgreSQL en el puerto `5432`.
+2. Levantar los servicios:
+```bash
+docker compose up --build
+```
 
-Para detener:
-
+Para detener los contenedores:
 ```bash
 docker compose down
 ```
 
-Para eliminar la base de datos:
-
+Para eliminar el volumen de datos persistente:
 ```bash
 docker compose down -v
 ```
 
-### Solo la imagen Docker
+## Pruebas automatizadas
+
+El proyecto cuenta con una suite completa de pruebas unitarias y de integración que sigue el patrón **AAA (Arrange-Act-Assert)**:
 
 ```bash
-docker build -t task-manager-api:1.0.0 .
-docker run -p 8080:8080 \
-  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/taskmanager \
-  -e SPRING_DATASOURCE_USERNAME=postgres \
-  -e SPRING_DATASOURCE_PASSWORD=postgres \
-  task-manager-api:1.0.0
-```
-
-### Variables de entorno
-
-Ver [.env.example](.env.example) para las variables disponibles.
-
-## Swagger / OpenAPI
-
-Con la app levantada:
-
-- UI: `http://localhost:8080/swagger-ui.html`
-- Spec JSON: `http://localhost:8080/v3/api-docs`
-
-## Ejecutar tests
-
-```bash
-# Todos los tests
+# Ejecutar todos los tests y generar reporte de cobertura
 ./gradlew test
 
-# Solo unit tests (servicio + mapper)
-./gradlew test --tests "*TaskServiceTest" --tests "*TaskMapperTest"
+# Ejecutar tests unitarios específicos
+./gradlew test --tests "*TaskServiceTest"
+./gradlew test --tests "*TaskMapperTest"
+./gradlew test --tests "*TaskStatusTransitionValidatorTest"
 
-# Tests de controlador
-./gradlew test --tests "*TaskControllerIntegrationTest"
+# Ejecutar pruebas de integración de controladores
+./gradlew test --tests "*TaskControllerTest"
+./gradlew test --tests "*TaskStatusTransitionControllerIntegrationTest"
 
-# Tests de rendimiento
+# Ejecutar pruebas de rendimiento
 ./gradlew test --tests "*TaskControllerPerformanceTest"
 ```
 
-## Como funcionan los tests
+## Análisis estático y cobertura de código
 
-Se siguen dos tipos de pruebas, ambas bajo el patron **AAA (Arrange-Act-Assert)**.
+### Reporte de cobertura JaCoCo
 
-### Unit tests
+La tarea `test` finaliza automáticamente con `jacocoTestReport`. Para visualizar el reporte HTML:
 
-Se centran en piezas pequenas del sistema sin levantar el contexto de Spring.
-
-**`TaskServiceTest`** (10 tests) - Mockea el repositorio con Mockito y valida:
-- Creacion correcta de tareas
-- Busqueda por ID
-- Actualizacion de estado
-- Error cuando la tarea no existe
-- Excepcion si una tarea cancelada intenta cambiar de estado
-- Eliminacion exitosa y manejo de ID inexistente
-
-**`TaskMapperTest`** (4 tests) - Valida la conversion DTO <-> Entity:
-- CreateTaskRequest a entity (status default PENDING)
-- UpdateTaskRequest aplica solo campos no nulos
-- Task entity a TaskResponse
-
-### Tests de integracion del controlador
-
-**`TaskControllerIntegrationTest`** (4 tests) - Mockea el servicio y valida el comportamiento HTTP:
-- POST retorna 201 con body correcto
-- GET retorna 200 con lista
-- GET con ID inexistente propagna excepcion
-- DELETE retorna 204
-
-### Tests de rendimiento
-
-**`TaskControllerPerformanceTest`** (2 tests) - Mide tiempo de ejecucion de operaciones criticas y valida que no excedan umbrales razonables (< 5000ms).
-
-## Base de datos
-
-### Perfil dev
-
-- H2 en memoria
-- Esquema creado automaticamente con `ddl-auto: create-drop`
-- Consola H2 habilitada
-
-### Perfil prod
-
-- PostgreSQL
-- Migraciones via Flyway (`db/migration/V1__Create_tasks_table.sql`)
-- Esquema validado con `ddl-auto: validate`
-
-## Arquitectura
-
-El proyecto sigue un patron de arquitectura en capas:
-
-```
-Controller (recibe HTTP)
-    ↓
-Service (logica de negocio)
-    ↓
-Repository (acceso a datos via JPA)
-    ↓
-Database (PostgreSQL / H2)
+```text
+build/reports/jacoco/test/html/index.html
 ```
 
-**Patrones de diseno aplicados:**
-- **DTO** - Separacion de modelos de entrada/salida de la entidad JPA
-- **Repository** - Abstraccion del acceso a datos
-- **Dependency Injection** - Inyeccion via constructor con Lombok `@RequiredArgsConstructor`
-- **Global Exception Handler** - Manejo centralizado de errores via `@RestControllerAdvice`
-- **Mapper** - Conversion entre DTOs y entidades
-- **Transactional** - Transacciones gestionadas en la capa de servicio
+### Ejecutar análisis de SonarCloud
 
-## License
+Para lanzar el análisis localmente hacia SonarCloud:
+
+```bash
+# En Bash / macOS / Linux:
+export SONAR_TOKEN="tu-token-sonarcloud"
+./gradlew sonar
+
+# En PowerShell (Windows):
+$env:SONAR_TOKEN="tu-token-sonarcloud"
+./gradlew sonar
+```
+
+El análisis evalúa:
+- Cobertura de código en código nuevo (umbral mínimo del Quality Gate: ≥ 80%).
+- Complejidad ciclomática y cognitiva (máximo 10 por método).
+- 0 bugs, 0 vulnerabilidades, 0 code smells de severidad alta/bloqueante.
+- 100% de Security Hotspots revisados.
+
+## Licencia
 
 Apache License 2.0
