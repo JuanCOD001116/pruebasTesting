@@ -22,7 +22,7 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
 # Copy the JAR file from the builder stage
-COPY --from=builder /app/build/libs/demo-1.0.0.jar app.jar
+COPY --from=builder /app/build/libs/task-manager-api.jar app.jar
 
 # Expose the port
 EXPOSE 8080
