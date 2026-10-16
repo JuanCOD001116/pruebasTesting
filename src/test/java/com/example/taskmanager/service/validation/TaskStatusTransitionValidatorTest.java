@@ -17,19 +17,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Basis-path documentation for TaskStatusTransitionValidator.validate.
  *
- * <p>The method has V(G) = 6: the equality decision, the allowed-transition decision,
- * the PENDING decision, the IN_PROGRESS decision, and the two short-circuit checks for
- * assignedTo being null or blank.
+ * <p>Decision points: 3 if + 2 &amp;&amp; + 1 || = 6 decision points -&gt; V(G) = 6 + 1 = 7.
  *
- * <p>Basis paths and traceability:
+ * <p>Basis paths and traceability (McCabe method):
  *
  * <ul>
- *   <li>Path 1: same status -> TC-01, TC-07, TC-12, TC-17.
- *   <li>Path 2: disallowed transition -> TC-04, TC-10, TC-14.
- *   <li>Path 3: PENDING to IN_PROGRESS without assignment -> TC-03.
- *   <li>Path 4: PENDING to IN_PROGRESS with null-safe nonblank assignment -> TC-02.
- *   <li>Path 5: PENDING to IN_PROGRESS with blank assignment -> TC-18.
- *   <li>Path 6: allowed transition -> TC-05, TC-06, TC-08, TC-09.
+ *   <li>Path 1 (d1=T): same status -&gt; rejects (rule 3) -&gt; TC-01, TC-07, TC-12, TC-17.
+ *   <li>Path 2 (d1=F, d2=T): disallowed transition -&gt; rejects (not allowed) -&gt; TC-04, TC-10, TC-14.
+ *   <li>Path 3 (d1=F, d2=F, d3=T, d4=T, d5=T): PENDING to IN_PROGRESS with assignedTo null -&gt; rejects -&gt; TC-03.
+ *   <li>Path 4 (d1=F, d2=F, d3=T, d4=T, d5=F, d6=T): PENDING to IN_PROGRESS with assignedTo blank -&gt; rejects -&gt; TC-18.
+ *   <li>Path 5 (d1=F, d2=F, d3=T, d4=T, d5=F, d6=F): PENDING to IN_PROGRESS with valid assignedTo -&gt; accepts -&gt; TC-02.
+ *   <li>Path 6 (d1=F, d2=F, d3=T, d4=F): allowed transition, current == PENDING, new != IN_PROGRESS -&gt; accepts -&gt; TC-05 (PENDING -&gt; CANCELLED).
+ *   <li>Path 7 (d1=F, d2=F, d3=F): allowed transition, current != PENDING (short-circuit) -&gt; accepts -&gt; TC-06, TC-08, TC-09.
  * </ul>
  */
 class TaskStatusTransitionValidatorTest {
