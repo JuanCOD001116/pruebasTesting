@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -30,7 +29,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public TaskResponse createTask(CreateTaskRequest request) {
-        log.info("Creating task with title: {}", request.getTitle());
+        log.info("Creating new task");
         Task task = TaskMapper.toEntity(request);
         Task savedTask = taskRepository.save(task);
         log.info("Task created successfully with id: {}", savedTask.getId());
@@ -41,11 +40,7 @@ public class TaskServiceImpl implements TaskService {
     @Transactional(readOnly = true)
     public TaskResponse getTaskById(Long id) {
         log.debug("Fetching task with id: {}", id);
-        Task task = taskRepository.findById(id)
-                .orElseThrow(() -> {
-                    log.error("Task not found with id: {}", id);
-                    return new TaskNotFoundException(id);
-                });
+        Task task = findTaskOrThrow(id);
         return TaskMapper.toResponse(task);
     }
 
@@ -56,7 +51,7 @@ public class TaskServiceImpl implements TaskService {
         List<Task> tasks = taskRepository.findAll();
         return tasks.stream()
                 .map(TaskMapper::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -66,7 +61,7 @@ public class TaskServiceImpl implements TaskService {
         List<Task> tasks = taskRepository.findByStatus(status);
         return tasks.stream()
                 .map(TaskMapper::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -76,7 +71,7 @@ public class TaskServiceImpl implements TaskService {
         List<Task> tasks = taskRepository.findByPriority(priority);
         return tasks.stream()
                 .map(TaskMapper::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -86,22 +81,19 @@ public class TaskServiceImpl implements TaskService {
         List<Task> tasks = taskRepository.findByStatusAndPriority(status, priority);
         return tasks.stream()
                 .map(TaskMapper::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public TaskResponse updateTask(Long id, UpdateTaskRequest request) {
         log.info("Updating task with id: {}", id);
-        Task task = taskRepository.findById(id)
-                .orElseThrow(() -> {
-                    log.error("Task not found with id: {}", id);
-                    return new TaskNotFoundException(id);
-                });
-            if (request.getStatus() != null && request.getStatus() != task.getStatus()) {
-                taskStatusTransitionValidator.validate(
-                    task.getStatus(), request.getStatus(), request.getAssignedTo() != null
-                        ? request.getAssignedTo() : task.getAssignedTo());
-            }
+        Task task = findTaskOrThrow(id);
+
+        if (request.getStatus() != null && request.getStatus() != task.getStatus()) {
+            String assignedTo = request.getAssignedTo() != null ? request.getAssignedTo() : task.getAssignedTo();
+            taskStatusTransitionValidator.validate(task.getStatus(), request.getStatus(), assignedTo);
+        }
+
         Task updatedTask = TaskMapper.toEntity(request, task);
         Task savedTask = taskRepository.save(updatedTask);
         log.info("Task updated successfully with id: {}", savedTask.getId());
@@ -111,12 +103,8 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public TaskResponse updateTaskStatus(Long id, TaskStatus newStatus) {
         log.info("Updating task status with id: {} to status: {}", id, newStatus);
-        Task task = taskRepository.findById(id)
-                .orElseThrow(() -> {
-                    log.error("Task not found with id: {}", id);
-                    return new TaskNotFoundException(id);
-                });
-        
+        Task task = findTaskOrThrow(id);
+
         taskStatusTransitionValidator.validate(task.getStatus(), newStatus, task.getAssignedTo());
         task.setStatus(newStatus);
         Task savedTask = taskRepository.save(task);
@@ -128,10 +116,18 @@ public class TaskServiceImpl implements TaskService {
     public void deleteTask(Long id) {
         log.info("Deleting task with id: {}", id);
         if (!taskRepository.existsById(id)) {
-            log.error("Task not found with id: {}", id);
+            log.warn("Task not found with id: {}", id);
             throw new TaskNotFoundException(id);
         }
         taskRepository.deleteById(id);
         log.info("Task deleted successfully with id: {}", id);
+    }
+
+    private Task findTaskOrThrow(Long id) {
+        return taskRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Task not found with id: {}", id);
+                    return new TaskNotFoundException(id);
+                });
     }
 }
