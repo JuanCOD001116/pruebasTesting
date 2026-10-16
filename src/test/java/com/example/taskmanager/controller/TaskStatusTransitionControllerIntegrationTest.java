@@ -16,7 +16,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:taskdb;MODE=PostgreSQL")
+@SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("dev")
 class TaskStatusTransitionControllerIntegrationTest {
