@@ -15,12 +15,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TaskControllerPerformanceTest {
@@ -63,16 +68,13 @@ class TaskControllerPerformanceTest {
         when(taskService.createTask(any(CreateTaskRequest.class)))
                 .thenReturn(taskResponse);
 
-        // Act
-        long startTime = System.currentTimeMillis();
-        ResponseEntity<TaskResponse> response = taskController.createTask(createRequest);
-        long endTime = System.currentTimeMillis();
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        long executionTime = endTime - startTime;
-        assertTrue(executionTime < 5000, "Create task took " + executionTime + "ms");
+        // Act & Assert
+        assertTimeout(Duration.ofMillis(200), () -> {
+            ResponseEntity<TaskResponse> response = taskController.createTask(createRequest);
+            assertNotNull(response);
+            assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        });
+        verify(taskService, times(1)).createTask(any(CreateTaskRequest.class));
     }
 
     @Test
@@ -80,17 +82,14 @@ class TaskControllerPerformanceTest {
     void shouldGetAllTasksWithinTimeThreshold() {
         // Arrange
         when(taskService.getAllTasks())
-                .thenReturn(Arrays.asList(taskResponse));
+                .thenReturn(List.of(taskResponse));
 
-        // Act
-        long startTime = System.currentTimeMillis();
-        ResponseEntity<java.util.List<TaskResponse>> response = taskController.getAllTasks(null, null);
-        long endTime = System.currentTimeMillis();
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        long executionTime = endTime - startTime;
-        assertTrue(executionTime < 5000, "Get all tasks took " + executionTime + "ms");
+        // Act & Assert
+        assertTimeout(Duration.ofMillis(200), () -> {
+            ResponseEntity<List<TaskResponse>> response = taskController.getAllTasks(null, null);
+            assertNotNull(response);
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+        });
+        verify(taskService, times(1)).getAllTasks();
     }
 }
