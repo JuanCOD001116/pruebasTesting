@@ -63,6 +63,20 @@ class TaskStatusTransitionControllerIntegrationTest {
                 .andExpect(jsonPath("$.message", containsString("PENDING")));
     }
 
+    @Test
+    void shouldRejectPutWithBlankTitle() throws Exception {
+        // Arrange
+        seedTask(2L, "Existing title", "MEDIUM", "diego");
+
+        // Act & Assert
+        mockMvc.perform(put("/api/tasks/{id}", 2L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"   \"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message", containsString("Title must not be blank")));
+    }
+
     private void seedTask(Long id, String title, String priority, String assignedTo) {
         jdbcTemplate.update(
                 "insert into tasks (id, title, description, status, priority, assigned_to, "
