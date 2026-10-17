@@ -10,8 +10,7 @@ spring:
       ddl-auto: validate
     show-sql: false
     properties:
-      hibernate:
-        format_sql: true
+      "[hibernate.format_sql]": true
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -25,7 +24,7 @@ management:
 logging:
   level:
     root: INFO
-    com.example.taskmanager: DEBUG
+    "[com.example.taskmanager]": DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 

@@ -9,10 +9,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.springframework.data.annotation.CreatedDate;
@@ -29,8 +27,6 @@ import java.time.LocalDateTime;
 @Setter
 @ToString
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class Task {
 
     @Id
@@ -66,6 +62,25 @@ public class Task {
     @LastModifiedDate
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    public Task() {
+        // @Builder.Default moves the field initializers into the builder, so set them here as well
+        this.status = TaskStatus.PENDING;
+        this.priority = TaskPriority.MEDIUM;
+    }
+
+    public Task(Long id, String title, String description, TaskStatus status, TaskPriority priority,
+                String assignedTo, LocalDate dueDate, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this.id = id;
+        this.title = title;
+        this.description = description;
+        this.status = status;
+        this.priority = priority;
+        this.assignedTo = assignedTo;
+        this.dueDate = dueDate;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
 
     @Override
     public boolean equals(Object o) {

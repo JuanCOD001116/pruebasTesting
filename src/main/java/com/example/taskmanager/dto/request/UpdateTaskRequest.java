@@ -4,17 +4,13 @@ import com.example.taskmanager.dto.validation.NullOrNotBlank;
 import com.example.taskmanager.model.TaskPriority;
 import com.example.taskmanager.model.TaskStatus;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
 @Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class UpdateTaskRequest {
 
     @NullOrNotBlank(message = "Title must not be blank")
@@ -32,4 +28,17 @@ public class UpdateTaskRequest {
     private String assignedTo;
 
     private LocalDate dueDate;
+
+    public UpdateTaskRequest() {
+    }
+
+    public UpdateTaskRequest(String title, String description, TaskPriority priority, TaskStatus status,
+                             String assignedTo, LocalDate dueDate) {
+        this.title = title;
+        this.description = description;
+        this.priority = priority;
+        this.status = status;
+        this.assignedTo = assignedTo;
+        this.dueDate = dueDate;
+    }
 }
