@@ -163,7 +163,7 @@ Entidad principal: `Task`
 
 ### Requisitos
 
-- Java 17 (JDK)
+- Java 17 (JDK). Gradle usa un JDK 17 instalado para su daemon (`gradle/gradle-daemon-jvm.properties`) aunque `JAVA_HOME` apunte a una versión más nueva.
 - Docker y Docker Compose (para ejecución en contenedores)
 
 ### Desarrollo local (H2 en memoria)
