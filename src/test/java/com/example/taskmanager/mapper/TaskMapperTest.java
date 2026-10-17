@@ -6,6 +6,7 @@ import com.example.taskmanager.dto.response.TaskResponse;
 import com.example.taskmanager.model.Task;
 import com.example.taskmanager.model.TaskPriority;
 import com.example.taskmanager.model.TaskStatus;
+import com.example.taskmanager.model.TaskUrgency;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -118,5 +119,16 @@ class TaskMapperTest {
         assertEquals(TaskPriority.MEDIUM, updatedEntity.getPriority());
         assertEquals("Jane Doe", updatedEntity.getAssignedTo());
         assertEquals(LocalDate.of(2026, 12, 31), updatedEntity.getDueDate());
+    }
+
+    @Test
+    @DisplayName("Dada una entidad Task y una urgencia, cuando se mapea a respuesta, entonces la urgencia se mapea correctamente")
+    void shouldConvertTaskEntityToResponseWithUrgency() {
+        // Arrange & Act
+        TaskResponse response = TaskMapper.toResponse(testTask, TaskUrgency.AT_RISK);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(TaskUrgency.AT_RISK, response.getUrgency());
     }
 }
