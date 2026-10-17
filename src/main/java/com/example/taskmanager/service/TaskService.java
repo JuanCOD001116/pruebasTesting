@@ -3,7 +3,6 @@ package com.example.taskmanager.service;
 import com.example.taskmanager.dto.request.CreateTaskRequest;
 import com.example.taskmanager.dto.request.UpdateTaskRequest;
 import com.example.taskmanager.dto.response.TaskResponse;
-import com.example.taskmanager.model.TaskPriority;
 import com.example.taskmanager.model.TaskStatus;
 
 import com.example.taskmanager.dto.request.TaskSearchCriteria;

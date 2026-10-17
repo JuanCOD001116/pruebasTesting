@@ -67,6 +67,7 @@ public class Task {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

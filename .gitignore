@@ -6,7 +6,8 @@
 
 # IDEs
 .idea/
-.vscode/
+.vscode/*
+!.vscode/settings.json
 *.iml
 *.ipr
 *.iws

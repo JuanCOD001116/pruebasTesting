@@ -4,6 +4,7 @@ import com.example.taskmanager.dto.request.CreateTaskRequest;
 import com.example.taskmanager.dto.request.UpdateTaskRequest;
 import com.example.taskmanager.dto.response.TaskResponse;
 import com.example.taskmanager.model.Task;
+import com.example.taskmanager.model.TaskUrgency;
 import lombok.experimental.UtilityClass;
 
 import java.util.function.Consumer;
@@ -37,7 +38,7 @@ public class TaskMapper {
         }
     }
 
-    public TaskResponse toResponse(Task task) {
+    public TaskResponse toResponse(Task task, TaskUrgency urgency) {
         return TaskResponse.builder()
                 .id(task.getId())
                 .title(task.getTitle())
@@ -46,8 +47,13 @@ public class TaskMapper {
                 .priority(task.getPriority())
                 .assignedTo(task.getAssignedTo())
                 .dueDate(task.getDueDate())
+                .urgency(urgency)
                 .createdAt(task.getCreatedAt())
                 .updatedAt(task.getUpdatedAt())
                 .build();
+    }
+
+    public TaskResponse toResponse(Task task) {
+        return toResponse(task, null);
     }
 }
