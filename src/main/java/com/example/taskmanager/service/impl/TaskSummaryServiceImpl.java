@@ -5,7 +5,6 @@ import com.example.taskmanager.model.TaskPriority;
 import com.example.taskmanager.model.TaskStatus;
 import com.example.taskmanager.repository.TaskRepository;
 import com.example.taskmanager.service.TaskSummaryService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,13 +17,17 @@ import java.util.EnumMap;
 import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 @Transactional(readOnly = true)
 public class TaskSummaryServiceImpl implements TaskSummaryService {
 
     private final TaskRepository taskRepository;
     private final Clock clock;
+
+    public TaskSummaryServiceImpl(TaskRepository taskRepository, Clock clock) {
+        this.taskRepository = taskRepository;
+        this.clock = clock;
+    }
 
     @Override
     public TaskSummaryResponse getSummary() {

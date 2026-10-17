@@ -1,7 +1,6 @@
 package com.example.taskmanager.service.validation;
 
 import com.example.taskmanager.exception.InvalidTaskDataException;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
@@ -9,10 +8,13 @@ import java.time.LocalDate;
 import java.util.Objects;
 
 @Component
-@RequiredArgsConstructor
 public class TaskDueDateValidator {
 
     private final Clock clock;
+
+    public TaskDueDateValidator(Clock clock) {
+        this.clock = clock;
+    }
 
     public void validateDueDateForCreation(LocalDate dueDate) {
         if (dueDate == null) {

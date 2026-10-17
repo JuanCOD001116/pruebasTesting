@@ -17,7 +17,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -39,13 +38,17 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/tasks")
-@RequiredArgsConstructor
 @Validated
 @Tag(name = "Tasks", description = "API for managing tasks")
 public class TaskController {
 
-        private final TaskService taskService;
-        private final TaskSummaryService taskSummaryService;
+    private final TaskService taskService;
+    private final TaskSummaryService taskSummaryService;
+
+    public TaskController(TaskService taskService, TaskSummaryService taskSummaryService) {
+        this.taskService = taskService;
+        this.taskSummaryService = taskSummaryService;
+    }
 
         @PostMapping
         @Operation(summary = "Create a new task")

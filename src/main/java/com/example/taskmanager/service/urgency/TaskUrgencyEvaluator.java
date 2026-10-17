@@ -5,18 +5,21 @@ import com.example.taskmanager.model.Task;
 import com.example.taskmanager.model.TaskPriority;
 import com.example.taskmanager.model.TaskStatus;
 import com.example.taskmanager.model.TaskUrgency;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 import java.time.LocalDate;
 
 @Component
-@RequiredArgsConstructor
 public class TaskUrgencyEvaluator {
 
     private final Clock clock;
     private final UrgencyProperties urgencyProperties;
+
+    public TaskUrgencyEvaluator(Clock clock, UrgencyProperties urgencyProperties) {
+        this.clock = clock;
+        this.urgencyProperties = urgencyProperties;
+    }
 
     public TaskUrgency evaluate(Task task) {
         LocalDate today = LocalDate.now(clock);

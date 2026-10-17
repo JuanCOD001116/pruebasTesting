@@ -17,7 +17,6 @@ import com.example.taskmanager.service.urgency.TaskUrgencyEvaluator;
 import com.example.taskmanager.service.validation.SortValidator;
 import com.example.taskmanager.service.validation.TaskDueDateValidator;
 import com.example.taskmanager.service.validation.TaskStatusTransitionValidator;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,7 +29,6 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 @Transactional
 public class TaskServiceImpl implements TaskService {
@@ -41,6 +39,20 @@ public class TaskServiceImpl implements TaskService {
     private final TaskUrgencyEvaluator taskUrgencyEvaluator;
     private final SortValidator sortValidator;
     private final Clock clock;
+
+    public TaskServiceImpl(TaskRepository taskRepository,
+                           TaskStatusTransitionValidator taskStatusTransitionValidator,
+                           TaskDueDateValidator taskDueDateValidator,
+                           TaskUrgencyEvaluator taskUrgencyEvaluator,
+                           SortValidator sortValidator,
+                           Clock clock) {
+        this.taskRepository = taskRepository;
+        this.taskStatusTransitionValidator = taskStatusTransitionValidator;
+        this.taskDueDateValidator = taskDueDateValidator;
+        this.taskUrgencyEvaluator = taskUrgencyEvaluator;
+        this.sortValidator = sortValidator;
+        this.clock = clock;
+    }
 
     @Override
     public TaskResponse createTask(CreateTaskRequest request) {
