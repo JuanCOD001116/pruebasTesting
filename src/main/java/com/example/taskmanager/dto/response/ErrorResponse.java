@@ -1,13 +1,17 @@
 package com.example.taskmanager.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ErrorResponse {
 
     private int code;
@@ -18,14 +22,4 @@ public class ErrorResponse {
     private LocalDateTime timestamp;
 
     private String path;
-
-    public ErrorResponse() {
-    }
-
-    public ErrorResponse(int code, String message, LocalDateTime timestamp, String path) {
-        this.code = code;
-        this.message = message;
-        this.timestamp = timestamp;
-        this.path = path;
-    }
 }
