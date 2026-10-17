@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,11 +30,13 @@ class TaskMapperTest {
                 .description("Test Description")
                 .priority(TaskPriority.HIGH)
                 .assignedTo("John Doe")
+                .dueDate(LocalDate.of(2026, 12, 31))
                 .build();
 
         updateRequest = UpdateTaskRequest.builder()
                 .title("Updated Title")
                 .priority(TaskPriority.LOW)
+                .dueDate(LocalDate.of(2027, 1, 15))
                 .build();
 
         testTask = Task.builder()
@@ -43,6 +46,7 @@ class TaskMapperTest {
                 .status(TaskStatus.PENDING)
                 .priority(TaskPriority.MEDIUM)
                 .assignedTo("Jane Doe")
+                .dueDate(LocalDate.of(2026, 12, 31))
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -60,6 +64,7 @@ class TaskMapperTest {
         assertEquals(createRequest.getDescription(), entity.getDescription());
         assertEquals(createRequest.getPriority(), entity.getPriority());
         assertEquals(createRequest.getAssignedTo(), entity.getAssignedTo());
+        assertEquals(createRequest.getDueDate(), entity.getDueDate());
         assertEquals(TaskStatus.PENDING, entity.getStatus());
     }
 
@@ -73,6 +78,7 @@ class TaskMapperTest {
         assertNotNull(updatedEntity);
         assertEquals(updateRequest.getTitle(), updatedEntity.getTitle());
         assertEquals(updateRequest.getPriority(), updatedEntity.getPriority());
+        assertEquals(updateRequest.getDueDate(), updatedEntity.getDueDate());
         assertEquals(testTask.getDescription(), updatedEntity.getDescription());
     }
 
@@ -90,6 +96,7 @@ class TaskMapperTest {
         assertEquals(testTask.getStatus(), response.getStatus());
         assertEquals(testTask.getPriority(), response.getPriority());
         assertEquals(testTask.getAssignedTo(), response.getAssignedTo());
+        assertEquals(testTask.getDueDate(), response.getDueDate());
         assertEquals(testTask.getCreatedAt(), response.getCreatedAt());
         assertEquals(testTask.getUpdatedAt(), response.getUpdatedAt());
     }
@@ -110,5 +117,6 @@ class TaskMapperTest {
         assertEquals("Test Description", updatedEntity.getDescription());
         assertEquals(TaskPriority.MEDIUM, updatedEntity.getPriority());
         assertEquals("Jane Doe", updatedEntity.getAssignedTo());
+        assertEquals(LocalDate.of(2026, 12, 31), updatedEntity.getDueDate());
     }
 }

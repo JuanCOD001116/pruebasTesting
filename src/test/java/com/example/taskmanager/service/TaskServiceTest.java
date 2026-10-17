@@ -12,19 +12,39 @@ import com.example.taskmanager.repository.TaskRepository;
 import com.example.taskmanager.service.impl.TaskServiceImpl;
 import com.example.taskmanager.service.validation.TaskStatusTransitionValidator;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.example.taskmanager.dto.request.TaskSearchCriteria;
+import com.example.taskmanager.dto.response.PageResponse;
+import com.example.taskmanager.service.validation.SortValidator;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TaskServiceTest {
@@ -34,6 +54,12 @@ class TaskServiceTest {
 
     @Mock
     private TaskStatusTransitionValidator taskStatusTransitionValidator;
+
+    @Spy
+    private SortValidator sortValidator = new SortValidator();
+
+    @Spy
+    private Clock clock = Clock.fixed(Instant.parse("2026-10-16T10:00:00Z"), ZoneId.of("UTC"));
 
     @InjectMocks
     private TaskServiceImpl taskService;
@@ -122,60 +148,62 @@ class TaskServiceTest {
     }
 
     @Test
-    void shouldGetAllTasksSuccessfully() {
+    @DisplayName("Dado un criterio de busqueda, cuando se ejecuta findTasks, entonces retorna la lista mapeada a respuesta")
+    @SuppressWarnings("unchecked")
+    void shouldFindTasksSuccessfullyWithCriteria() {
         // Arrange
-        when(taskRepository.findAll()).thenReturn(Arrays.asList(testTask));
+        TaskSearchCriteria criteria = new TaskSearchCriteria(
+                TaskStatus.PENDING, TaskPriority.MEDIUM, null, null, null, null, null
+        );
+        when(taskRepository.findAll(any(Specification.class))).thenReturn(List.of(testTask));
 
         // Act
-        var response = taskService.getAllTasks();
+        List<TaskResponse> response = taskService.findTasks(criteria);
 
         // Assert
         assertNotNull(response);
         assertEquals(1, response.size());
         assertEquals(testTask.getId(), response.get(0).getId());
-        verify(taskRepository, times(1)).findAll();
+        verify(taskRepository, times(1)).findAll(any(Specification.class));
     }
 
     @Test
-    void shouldGetTasksByStatusSuccessfully() {
+    @DisplayName("Dado un criterio y paginacion valida, cuando se ejecuta searchTasks, entonces retorna PageResponse")
+    @SuppressWarnings("unchecked")
+    void shouldSearchTasksWithPaginationSuccessfully() {
         // Arrange
-        when(taskRepository.findByStatus(TaskStatus.PENDING)).thenReturn(Arrays.asList(testTask));
+        TaskSearchCriteria criteria = new TaskSearchCriteria(null, null, null, null, null, null, null);
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Task> page = new PageImpl<>(List.of(testTask), pageable, 1);
+        when(taskRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
 
         // Act
-        var response = taskService.getTasksByStatus(TaskStatus.PENDING);
+        PageResponse<TaskResponse> response = taskService.searchTasks(criteria, pageable);
 
         // Assert
-        assertEquals(1, response.size());
-        verify(taskRepository, times(1)).findByStatus(TaskStatus.PENDING);
+        assertNotNull(response);
+        assertEquals(1, response.content().size());
+        assertEquals(1L, response.totalElements());
+        assertEquals(1, response.totalPages());
+        assertEquals(0, response.page());
+        assertEquals(10, response.size());
+        verify(taskRepository, times(1)).findAll(any(Specification.class), eq(pageable));
     }
 
     @Test
-    void shouldGetTasksByPrioritySuccessfully() {
+    @DisplayName("Dado getAllTasks, cuando se invoca, entonces delega a findTasks con criterio nulo")
+    @SuppressWarnings("unchecked")
+    void shouldGetAllTasksDelegatingToFindTasks() {
         // Arrange
-        when(taskRepository.findByPriority(TaskPriority.MEDIUM)).thenReturn(Arrays.asList(testTask));
+        when(taskRepository.findAll(any(Specification.class))).thenReturn(List.of(testTask));
 
         // Act
-        var response = taskService.getTasksByPriority(TaskPriority.MEDIUM);
+        List<TaskResponse> response = taskService.getAllTasks();
 
         // Assert
+        assertNotNull(response);
         assertEquals(1, response.size());
-        verify(taskRepository, times(1)).findByPriority(TaskPriority.MEDIUM);
-    }
-
-    @Test
-    void shouldGetTasksByStatusAndPrioritySuccessfully() {
-        // Arrange
-        when(taskRepository.findByStatusAndPriority(TaskStatus.PENDING, TaskPriority.MEDIUM))
-                .thenReturn(Arrays.asList(testTask));
-
-        // Act
-        var response = taskService.getTasksByStatusAndPriority(
-                TaskStatus.PENDING, TaskPriority.MEDIUM);
-
-        // Assert
-        assertEquals(1, response.size());
-        verify(taskRepository, times(1))
-                .findByStatusAndPriority(TaskStatus.PENDING, TaskPriority.MEDIUM);
+        verify(taskRepository, times(1)).findAll(any(Specification.class));
     }
 
     @Test

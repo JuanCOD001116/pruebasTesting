@@ -61,4 +61,15 @@ class GlobalExceptionHandlerIntegrationTest {
                 .andExpect(jsonPath("$.message").value(containsString("Task not found with id: 999999")))
                 .andExpect(jsonPath("$.path").value("/api/tasks/999999"));
     }
+
+    @Test
+    @DisplayName("Dado un path variable inválido, cuando se consulta GET /api/tasks/{id} con texto, entonces responde 400 por type mismatch")
+    void shouldReturn400WhenPathVariableTypeMismatch() throws Exception {
+        // Arrange & Act & Assert
+        mockMvc.perform(get("/api/tasks/not-a-number"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value(containsString("Parámetro inválido 'id'")))
+                .andExpect(jsonPath("$.path").value("/api/tasks/not-a-number"));
+    }
 }

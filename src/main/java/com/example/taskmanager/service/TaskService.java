@@ -6,6 +6,10 @@ import com.example.taskmanager.dto.response.TaskResponse;
 import com.example.taskmanager.model.TaskPriority;
 import com.example.taskmanager.model.TaskStatus;
 
+import com.example.taskmanager.dto.request.TaskSearchCriteria;
+import com.example.taskmanager.dto.response.PageResponse;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 
 public interface TaskService {
@@ -14,13 +18,13 @@ public interface TaskService {
 
     TaskResponse getTaskById(Long id);
 
-    List<TaskResponse> getAllTasks();
+    List<TaskResponse> findTasks(TaskSearchCriteria criteria);
 
-    List<TaskResponse> getTasksByStatus(TaskStatus status);
+    PageResponse<TaskResponse> searchTasks(TaskSearchCriteria criteria, Pageable pageable);
 
-    List<TaskResponse> getTasksByPriority(TaskPriority priority);
-
-    List<TaskResponse> getTasksByStatusAndPriority(TaskStatus status, TaskPriority priority);
+    default List<TaskResponse> getAllTasks() {
+        return findTasks(null);
+    }
 
     TaskResponse updateTask(Long id, UpdateTaskRequest request);
 

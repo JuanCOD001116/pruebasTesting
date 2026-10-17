@@ -17,6 +17,7 @@ public class TaskMapper {
                 .description(request.getDescription())
                 .priority(request.getPriority())
                 .assignedTo(request.getAssignedTo())
+                .dueDate(request.getDueDate())
                 .build();
     }
 
@@ -26,6 +27,7 @@ public class TaskMapper {
         applyIfPresent(request.getPriority(), existingTask::setPriority);
         applyIfPresent(request.getStatus(), existingTask::setStatus);
         applyIfPresent(request.getAssignedTo(), existingTask::setAssignedTo);
+        applyIfPresent(request.getDueDate(), existingTask::setDueDate);
         return existingTask;
     }
 
@@ -43,6 +45,7 @@ public class TaskMapper {
                 .status(task.getStatus())
                 .priority(task.getPriority())
                 .assignedTo(task.getAssignedTo())
+                .dueDate(task.getDueDate())
                 .createdAt(task.getCreatedAt())
                 .updatedAt(task.getUpdatedAt())
                 .build();

@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -34,11 +35,24 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.taskmanager.dto.request.TaskSearchCriteria;
+import com.example.taskmanager.dto.response.PageResponse;
+import com.example.taskmanager.dto.response.TaskSummaryResponse;
+import com.example.taskmanager.service.TaskSummaryService;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
+import java.math.BigDecimal;
+import java.util.Map;
+
 @ExtendWith(MockitoExtension.class)
 class TaskControllerTest {
 
     @Mock
     private TaskService taskService;
+
+    @Mock
+    private TaskSummaryService taskSummaryService;
 
     @InjectMocks
     private TaskController taskController;
@@ -51,7 +65,7 @@ class TaskControllerTest {
     void setUp() {
         // Arrange
         mockMvc = MockMvcBuilders.standaloneSetup(taskController)
-                .setControllerAdvice(new GlobalExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler(Clock.systemDefaultZone()))
                 .build();
 
         createRequest = CreateTaskRequest.builder()
@@ -94,17 +108,60 @@ class TaskControllerTest {
     @DisplayName("should get all tasks")
     void shouldGetAllTasks() {
         // Arrange
-        when(taskService.getAllTasks())
+        when(taskService.findTasks(any()))
                 .thenReturn(List.of(taskResponse));
 
         // Act
-        ResponseEntity<List<TaskResponse>> response = taskController.getAllTasks(null, null);
+        ResponseEntity<List<TaskResponse>> response = taskController.getAllTasks(null);
 
         // Assert
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertFalse(response.getBody().isEmpty());
-        verify(taskService, times(1)).getAllTasks();
+        verify(taskService, times(1)).findTasks(any());
+    }
+
+    @Test
+    @DisplayName("should search tasks with pagination")
+    void shouldSearchTasksWithPagination() {
+        // Arrange
+        PageResponse<TaskResponse> pageResponse = new PageResponse<>(
+                List.of(taskResponse), 0, 10, 1L, 1
+        );
+        when(taskService.searchTasks(any(), any(Pageable.class)))
+                .thenReturn(pageResponse);
+
+        // Act
+        ResponseEntity<PageResponse<TaskResponse>> response = taskController.searchTasks(
+                new TaskSearchCriteria(null, null, null, null, null, null, null),
+                PageRequest.of(0, 10)
+        );
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1L, response.getBody().totalElements());
+        verify(taskService, times(1)).searchTasks(any(), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("should get tasks summary")
+    void shouldGetTasksSummary() {
+        // Arrange
+        TaskSummaryResponse summaryResponse = new TaskSummaryResponse(
+                10L, Map.of(TaskStatus.PENDING, 10L), Map.of(TaskPriority.MEDIUM, 10L), 2L, new BigDecimal("50.00")
+        );
+        when(taskSummaryService.getSummary()).thenReturn(summaryResponse);
+
+        // Act
+        ResponseEntity<TaskSummaryResponse> response = taskController.getTasksSummary();
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(10L, response.getBody().total());
+        assertEquals(new BigDecimal("50.00"), response.getBody().completionRate());
+        verify(taskSummaryService, times(1)).getSummary();
     }
 
     @Test

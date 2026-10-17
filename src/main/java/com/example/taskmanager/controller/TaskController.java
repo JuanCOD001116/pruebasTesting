@@ -3,10 +3,12 @@ package com.example.taskmanager.controller;
 import com.example.taskmanager.dto.request.CreateTaskRequest;
 import com.example.taskmanager.dto.request.PatchTaskStatusRequest;
 import com.example.taskmanager.dto.request.UpdateTaskRequest;
+import com.example.taskmanager.dto.request.TaskSearchCriteria;
+import com.example.taskmanager.dto.response.PageResponse;
 import com.example.taskmanager.dto.response.TaskResponse;
-import com.example.taskmanager.model.TaskPriority;
-import com.example.taskmanager.model.TaskStatus;
+import com.example.taskmanager.dto.response.TaskSummaryResponse;
 import com.example.taskmanager.service.TaskService;
+import com.example.taskmanager.service.TaskSummaryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -16,6 +18,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -27,7 +33,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -40,6 +45,7 @@ import java.util.List;
 public class TaskController {
 
     private final TaskService taskService;
+    private final TaskSummaryService taskSummaryService;
 
     @PostMapping
     @Operation(summary = "Create a new task")
@@ -58,21 +64,32 @@ public class TaskController {
     @ApiResponse(responseCode = "200", description = "List of tasks",
             content = @Content(array = @ArraySchema(schema = @Schema(implementation = TaskResponse.class))))
     public ResponseEntity<List<TaskResponse>> getAllTasks(
-            @RequestParam(required = false) TaskStatus status,
-            @RequestParam(required = false) TaskPriority priority) {
-        
-        List<TaskResponse> tasks;
-        if (status != null && priority != null) {
-            tasks = taskService.getTasksByStatusAndPriority(status, priority);
-        } else if (status != null) {
-            tasks = taskService.getTasksByStatus(status);
-        } else if (priority != null) {
-            tasks = taskService.getTasksByPriority(priority);
-        } else {
-            tasks = taskService.getAllTasks();
-        }
-        
+            @Valid @ParameterObject TaskSearchCriteria criteria) {
+        List<TaskResponse> tasks = taskService.findTasks(criteria);
         return ResponseEntity.ok(tasks);
+    }
+
+    @GetMapping("/search")
+    @Operation(summary = "Search tasks with pagination and sorting")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Paged search results",
+                    content = @Content(schema = @Schema(implementation = PageResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid search criteria or sort property")
+    })
+    public ResponseEntity<PageResponse<TaskResponse>> searchTasks(
+            @Valid @ParameterObject TaskSearchCriteria criteria,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        PageResponse<TaskResponse> response = taskService.searchTasks(criteria, pageable);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/summary")
+    @Operation(summary = "Get tasks summary statistics")
+    @ApiResponse(responseCode = "200", description = "Tasks summary statistics",
+            content = @Content(schema = @Schema(implementation = TaskSummaryResponse.class)))
+    public ResponseEntity<TaskSummaryResponse> getTasksSummary() {
+        TaskSummaryResponse response = taskSummaryService.getSummary();
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")

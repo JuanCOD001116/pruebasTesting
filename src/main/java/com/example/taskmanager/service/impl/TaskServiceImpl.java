@@ -3,19 +3,27 @@ package com.example.taskmanager.service.impl;
 import com.example.taskmanager.dto.request.CreateTaskRequest;
 import com.example.taskmanager.dto.request.UpdateTaskRequest;
 import com.example.taskmanager.dto.response.TaskResponse;
+import com.example.taskmanager.dto.request.TaskSearchCriteria;
+import com.example.taskmanager.dto.response.PageResponse;
 import com.example.taskmanager.exception.TaskNotFoundException;
 import com.example.taskmanager.mapper.TaskMapper;
 import com.example.taskmanager.model.Task;
-import com.example.taskmanager.model.TaskPriority;
 import com.example.taskmanager.model.TaskStatus;
 import com.example.taskmanager.repository.TaskRepository;
+import com.example.taskmanager.repository.specification.TaskSpecifications;
 import com.example.taskmanager.service.TaskService;
+import com.example.taskmanager.service.validation.SortValidator;
 import com.example.taskmanager.service.validation.TaskStatusTransitionValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -26,6 +34,8 @@ public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
     private final TaskStatusTransitionValidator taskStatusTransitionValidator;
+    private final SortValidator sortValidator;
+    private final Clock clock;
 
     @Override
     public TaskResponse createTask(CreateTaskRequest request) {
@@ -46,42 +56,31 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<TaskResponse> findTasks(TaskSearchCriteria criteria) {
+        log.debug("Finding tasks with criteria: {}", criteria);
+        LocalDate today = LocalDate.now(clock);
+        Specification<Task> spec = TaskSpecifications.from(criteria, today);
+        List<Task> tasks = taskRepository.findAll(spec);
+        return tasks.stream()
+                .map(TaskMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<TaskResponse> searchTasks(TaskSearchCriteria criteria, Pageable pageable) {
+        log.debug("Searching tasks with criteria: {} and pageable: {}", criteria, pageable);
+        sortValidator.validate(pageable.getSort());
+        LocalDate today = LocalDate.now(clock);
+        Specification<Task> spec = TaskSpecifications.from(criteria, today);
+        Page<Task> page = taskRepository.findAll(spec, pageable);
+        return PageResponse.from(page.map(TaskMapper::toResponse));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<TaskResponse> getAllTasks() {
-        log.debug("Fetching all tasks");
-        List<Task> tasks = taskRepository.findAll();
-        return tasks.stream()
-                .map(TaskMapper::toResponse)
-                .toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<TaskResponse> getTasksByStatus(TaskStatus status) {
-        log.debug("Fetching tasks with status: {}", status);
-        List<Task> tasks = taskRepository.findByStatus(status);
-        return tasks.stream()
-                .map(TaskMapper::toResponse)
-                .toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<TaskResponse> getTasksByPriority(TaskPriority priority) {
-        log.debug("Fetching tasks with priority: {}", priority);
-        List<Task> tasks = taskRepository.findByPriority(priority);
-        return tasks.stream()
-                .map(TaskMapper::toResponse)
-                .toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<TaskResponse> getTasksByStatusAndPriority(TaskStatus status, TaskPriority priority) {
-        log.debug("Fetching tasks with status: {} and priority: {}", status, priority);
-        List<Task> tasks = taskRepository.findByStatusAndPriority(status, priority);
-        return tasks.stream()
-                .map(TaskMapper::toResponse)
-                .toList();
+        return findTasks(null);
     }
 
     @Override

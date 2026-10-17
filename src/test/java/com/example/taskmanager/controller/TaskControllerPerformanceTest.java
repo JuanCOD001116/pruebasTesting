@@ -33,6 +33,9 @@ class TaskControllerPerformanceTest {
     @Mock
     private TaskService taskService;
 
+    @Mock
+    private com.example.taskmanager.service.TaskSummaryService taskSummaryService;
+
     @InjectMocks
     private TaskController taskController;
 
@@ -81,15 +84,15 @@ class TaskControllerPerformanceTest {
     @DisplayName("should get all tasks within reasonable time")
     void shouldGetAllTasksWithinTimeThreshold() {
         // Arrange
-        when(taskService.getAllTasks())
+        when(taskService.findTasks(any()))
                 .thenReturn(List.of(taskResponse));
 
         // Act & Assert
         assertTimeout(Duration.ofMillis(200), () -> {
-            ResponseEntity<List<TaskResponse>> response = taskController.getAllTasks(null, null);
+            ResponseEntity<List<TaskResponse>> response = taskController.getAllTasks(null);
             assertNotNull(response);
             assertEquals(HttpStatus.OK, response.getStatusCode());
         });
-        verify(taskService, times(1)).getAllTasks();
+        verify(taskService, times(1)).findTasks(any());
     }
 }
