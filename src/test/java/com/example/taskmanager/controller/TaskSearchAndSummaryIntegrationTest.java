@@ -13,12 +13,16 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.springframework.http.MediaType;
+
 import java.time.LocalDate;
 import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -123,5 +127,61 @@ class TaskSearchAndSummaryIntegrationTest {
                         .param("dueTo", "2026-01-01"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("F1 (R7): Dado un dueDate en el pasado, cuando se envía POST /api/tasks, entonces retorna 400 Bad Request")
+    void shouldRejectPastDueDateOnCreationWith400() throws Exception {
+        // Arrange
+        String json = """
+                {
+                    "title": "Task with past due date",
+                    "priority": "HIGH",
+                    "dueDate": "2020-01-01"
+                }
+                """;
+
+        // Act & Assert
+        mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value(containsString("Due date cannot be in the past")));
+    }
+
+    @Test
+    @DisplayName("F1 (R8): Dado un cambio de dueDate al pasado, cuando se envía PUT /api/tasks/{id}, entonces retorna 400 Bad Request")
+    void shouldRejectPastDueDateOnUpdateWith400() throws Exception {
+        // Arrange
+        Task task = taskRepository.findAll().get(0);
+        String json = """
+                {
+                    "dueDate": "2020-01-01"
+                }
+                """;
+
+        // Act & Assert
+        mockMvc.perform(put("/api/tasks/{id}", task.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value(containsString("Due date cannot be in the past")));
+    }
+
+    @Test
+    @DisplayName("F1 (Urgencia): Dado una tarea existente, cuando se consulta GET /api/tasks/{id}, entonces retorna el campo urgency calculado")
+    void shouldReturnCalculatedUrgencyOnGetById() throws Exception {
+        // Arrange
+        Task doneTask = taskRepository.findAll().stream()
+                .filter(t -> t.getStatus() == TaskStatus.DONE)
+                .findFirst()
+                .orElseThrow();
+
+        // Act & Assert
+        mockMvc.perform(get("/api/tasks/{id}", doneTask.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.urgency").value("NONE"));
     }
 }

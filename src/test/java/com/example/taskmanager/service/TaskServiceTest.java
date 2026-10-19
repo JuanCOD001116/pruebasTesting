@@ -32,7 +32,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,9 +41,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import com.example.taskmanager.model.TaskUrgency;
+import com.example.taskmanager.service.urgency.TaskUrgencyEvaluator;
+import com.example.taskmanager.service.validation.TaskDueDateValidator;
 
 @ExtendWith(MockitoExtension.class)
 class TaskServiceTest {
@@ -54,6 +58,12 @@ class TaskServiceTest {
 
     @Mock
     private TaskStatusTransitionValidator taskStatusTransitionValidator;
+
+    @Mock
+    private TaskDueDateValidator taskDueDateValidator;
+
+    @Mock
+    private TaskUrgencyEvaluator taskUrgencyEvaluator;
 
     @Spy
     private SortValidator sortValidator = new SortValidator();
@@ -93,6 +103,8 @@ class TaskServiceTest {
                 .title("Updated Task")
                 .priority(TaskPriority.LOW)
                 .build();
+
+        lenient().when(taskUrgencyEvaluator.evaluate(any())).thenReturn(TaskUrgency.ON_TRACK);
     }
 
     @Test
@@ -119,6 +131,8 @@ class TaskServiceTest {
         assertEquals(savedTask.getId(), response.getId());
         assertEquals(createRequest.getTitle(), response.getTitle());
         assertEquals(TaskStatus.PENDING, response.getStatus());
+        assertEquals(TaskUrgency.ON_TRACK, response.getUrgency());
+        verify(taskDueDateValidator, times(1)).validateDueDateForCreation(createRequest.getDueDate());
         verify(taskRepository, times(1)).save(any(Task.class));
     }
 
@@ -218,8 +232,39 @@ class TaskServiceTest {
         // Assert
         assertNotNull(response);
         assertEquals(testTask.getId(), response.getId());
+        assertEquals(TaskUrgency.ON_TRACK, response.getUrgency());
+        verify(taskDueDateValidator, times(1)).validateDueDateForUpdate(testTask.getDueDate(), updateRequest.getDueDate());
         verify(taskRepository, times(1)).findById(1L);
         verify(taskRepository, times(1)).save(any(Task.class));
+    }
+
+    @Test
+    @DisplayName("Dado un dueDate inválido al crear, cuando se invoca createTask, entonces lanza InvalidTaskDataException")
+    void shouldThrowInvalidTaskDataExceptionWhenCreatingTaskWithInvalidDueDate() {
+        // Arrange
+        doThrow(new com.example.taskmanager.exception.InvalidTaskDataException("Due date cannot be in the past"))
+                .when(taskDueDateValidator)
+                .validateDueDateForCreation(createRequest.getDueDate());
+
+        // Act & Assert
+        assertThrows(com.example.taskmanager.exception.InvalidTaskDataException.class,
+                () -> taskService.createTask(createRequest));
+        verify(taskRepository, times(0)).save(any(Task.class));
+    }
+
+    @Test
+    @DisplayName("Dado un dueDate inválido al actualizar, cuando se invoca updateTask, entonces lanza InvalidTaskDataException")
+    void shouldThrowInvalidTaskDataExceptionWhenUpdatingTaskWithInvalidDueDate() {
+        // Arrange
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        doThrow(new com.example.taskmanager.exception.InvalidTaskDataException("Due date cannot be in the past"))
+                .when(taskDueDateValidator)
+                .validateDueDateForUpdate(testTask.getDueDate(), updateRequest.getDueDate());
+
+        // Act & Assert
+        assertThrows(com.example.taskmanager.exception.InvalidTaskDataException.class,
+                () -> taskService.updateTask(1L, updateRequest));
+        verify(taskRepository, times(0)).save(any(Task.class));
     }
 
     @Test

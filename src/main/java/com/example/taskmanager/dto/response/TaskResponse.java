@@ -2,6 +2,7 @@ package com.example.taskmanager.dto.response;
 
 import com.example.taskmanager.model.TaskPriority;
 import com.example.taskmanager.model.TaskStatus;
+import com.example.taskmanager.model.TaskUrgency;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,6 +30,8 @@ public class TaskResponse {
     private String assignedTo;
 
     private LocalDate dueDate;
+
+    private TaskUrgency urgency;
 
     private LocalDateTime createdAt;
 
