@@ -12,12 +12,12 @@
 | Estado | Cantidad |
 |---|---|
 | ✅ OK | 47 |
-| 🔧 Corregido | 11 |
+| 🔧 Corregido | 12 |
 | ⬆️ Mejorado | 10 |
 | ❌→✅ Implementado (faltaba) | 1 |
 | ⚠️ Pendiente manual | 2 |
 
-71 ítems: los de §3 del spec 12 (algunos divididos en sub-ítems "b") más las 6 desviaciones
+72 ítems: los de §3 del spec 12 (algunos divididos en sub-ítems "b") más las 6 desviaciones
 indicadas por el usuario.
 
 ## Línea base vs. final
@@ -34,9 +34,11 @@ Final: `./gradlew clean build` sobre el último commit de esta rama.
 | Cobertura de ramas `service.impl` / `controller` (instr.) | 85.7 % / 75.3 % | 100 % / 100 % |
 | Máx. complejidad ciclomática por método | 7 (`validate`) | 7 (`validate`) |
 | `jacocoTestCoverageVerification` | Pasa | Pasa (umbrales sin cambios) |
-| Quality Gate (Sonar) | OK en `main` | PR: ver "Pendientes manuales" §1 |
-| Issues abiertos (bugs / vulnerabilidades / code smells) | 0 / 0 / 0 | PR: ver "Pendientes manuales" §1 |
-| Security Hotspots por revisar | 0 | 0 en `main` |
+| Quality Gate (Sonar) | OK en `main` | **OK (Passed) en el PR #3** |
+| Issues abiertos (bugs / vulnerabilidades / code smells) | 0 / 0 / 0 | 0 / 0 / 0 (`new_violations` = 0) |
+| Código nuevo del PR: cobertura / duplicación | — | 100 % / 0.0 % |
+| Ratings de código nuevo (confiabilidad / seguridad / mantenibilidad) | — | A / A / A |
+| Security Hotspots por revisar | 0 | 0 (100 % revisados) |
 
 ## Detalle por ítem
 
@@ -62,6 +64,7 @@ Final: `./gradlew clean build` sobre el último commit de esta rama.
 | 06.2 | ✅ | `qualityprofiles/search` → `TaskManager Java Way` (hereda de Sonar way, 317 reglas). | — | — |
 | 07.1 | ✅ | `quality-gate.md` documenta todas las condiciones de §2 con justificación. | — | — |
 | 07.2 | ✅ | `get_by_project` → `TaskManager Gate`; `project_status` de `main` → `OK`. | — | — |
+| 07.2b | 🔧 | El primer análisis del PR #3 dejó el gate en **Failed** (`new_security_rating` = C, `new_violations` = 1) por `githubactions:S7637`: `gradle/actions/setup-gradle@v5`, action de terceros referenciada por etiqueta mutable. | Fijada al SHA completo de v5.0.2 (`0723195…`). Nuevo análisis: gate **OK**, 0 issues. | `9e2f21d` |
 | 07.3 | ✅ | `hotspots/search?status=TO_REVIEW` → `total: 0`. | — | — |
 
 ### V-08 — Remediación de hallazgos
@@ -156,17 +159,16 @@ Final: `./gradlew clean build` sobre el último commit de esta rama.
 1. **Rama de trabajo:** el spec 12 §1.3 indica `chore/verificacion-calidad`; por instrucción del usuario se usó `chore/verificacion-final` desde `main`, porque la otra ya está mergeada.
 2. **Trabajo previo sin commitear:** al empezar, `docs/informe-metricas` tenía cambios pendientes (§1.2). Durante la lectura el usuario los commiteó (`14653df`). Se trajeron a esta rama con `cherry-pick` (`8911936`), sin modificar su contenido, porque el reporte y el informe viven en esa carpeta.
 3. **Plugin `org.sonarqube` 7.5.0.8588** en lugar de 7.3.x: el spec pide "la última versión publicada"; 7.3.x era la de la fecha de redacción.
-4. **Versiones de GitHub Actions:** el spec muestra `@v4` pero pide "la versión mayor vigente". Se usan v7/v6/v6 para checkout/setup-java/cache. `gradle/actions/setup-gradle` queda en **v5** (Node 24) y no en v6, porque v6 mueve el caché a un componente propietario y obliga a aceptar los *Terms of Use* de Gradle; esa decisión es del dueño del repositorio.
+4. **Versiones de GitHub Actions:** el spec muestra `@v4` pero pide "la versión mayor vigente". Se usan v7/v6/v6 para checkout/setup-java/cache. `gradle/actions/setup-gradle` queda en **v5** (Node 24) y no en v6, porque v6 mueve el caché a un componente propietario y obliga a aceptar los *Terms of Use* de Gradle; esa decisión es del dueño del repositorio. Además se referencia por **SHA completo** (v5.0.2) y no por etiqueta, que es lo que exige `githubactions:S7637` para actions de terceros.
 5. **Constructores explícitos** en lugar de `@RequiredArgsConstructor` (spec 09 §3.4) en servicios y controller: equivalentes en diseño (constructor injection), se conservan por compatibilidad con IDEs (D5).
 6. **`spring-boot-configuration-processor`** (`2f412c3`, ya en `main`): no lo pide ningún spec. Solo genera metadatos para que el IDE reconozca `app.urgency.*`; no aporta código ejecutable. Se mantiene y se documenta aquí.
 7. **Handler 4xx de Spring MVC (H-06):** el spec enumera tres handlers 400. Se agregó un cuarto para 404/405/415 porque la misma clase de defecto ("entradas inválidas que terminan en 500") aparecía con rutas y métodos inexistentes.
 
 ## Pendientes manuales para el usuario
 
-1. **Quality Gate del PR.** El PR a `main` dispara el workflow *Build & SonarCloud*. Al terminar, confirmar en el PR (check *SonarCloud Code Analysis*) o en https://sonarcloud.io/project/overview?id=JuanCOD001116_pruebasTesting → pestaña *Pull Requests* que **TaskManager Gate** está en **Passed**. Con API (proyecto público):
+1. **Merge del PR #3 y análisis de `main`.** El gate del PR ya está en **Passed** (verificado por API). Tras hacer merge, comprobar que el análisis de `main` también queda en OK:
    ```bash
-   curl -s "https://sonarcloud.io/api/qualitygates/project_status?projectKey=JuanCOD001116_pruebasTesting&pullRequest=<N>"
-   curl -s "https://sonarcloud.io/api/issues/search?componentKeys=JuanCOD001116_pruebasTesting&pullRequest=<N>&resolved=false"
+   curl -s "https://sonarcloud.io/api/qualitygates/project_status?projectKey=JuanCOD001116_pruebasTesting"
    ```
 2. **Activar 4 reglas faltantes del Quality Profile (spec 06 §4.2–4.3).**
    1. SonarCloud → organización `juancod001116` → *Quality Profiles* → *Java* → **TaskManager Java Way**.
