@@ -25,7 +25,9 @@ class SortValidatorTest {
     @Test
     @DisplayName("Dado un sort nulo o no ordenado, cuando se valida, entonces no lanza excepcion")
     void shouldAcceptNullOrUnsorted() {
-        // Arrange & Act & Assert
+        // Arrange: sort nulo y Sort.unsorted() en línea
+
+        // Act & Assert
         assertDoesNotThrow(() -> sortValidator.validate(null));
         assertDoesNotThrow(() -> sortValidator.validate(Sort.unsorted()));
     }

@@ -49,7 +49,9 @@ class NullOrNotBlankValidatorTest {
     @ValueSource(strings = {"", " ", "   ", "\t", "\n"})
     @DisplayName("Dado un texto vacio o solo espacios, cuando se valida, entonces retorna falso")
     void shouldReturnFalseWhenValueIsBlank(String blankValue) {
-        // Arrange & Act
+        // Arrange: valor en blanco provisto por @ValueSource
+
+        // Act
         boolean result = validator.isValid(blankValue, null);
 
         // Assert

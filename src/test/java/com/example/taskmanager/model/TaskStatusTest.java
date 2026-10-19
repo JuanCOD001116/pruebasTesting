@@ -17,7 +17,9 @@ class TaskStatusTest {
     @EnumSource(value = TaskStatus.class, names = {"DONE", "CANCELLED"})
     @DisplayName("Dado un estado DONE o CANCELLED, cuando se consulta isTerminal, entonces retorna verdadero")
     void shouldReturnTrueWhenStatusIsTerminal(TaskStatus status) {
-        // Arrange & Act
+        // Arrange: estado provisto por el parámetro o el propio enum
+
+        // Act
         boolean result = status.isTerminal();
 
         // Assert
@@ -28,7 +30,9 @@ class TaskStatusTest {
     @EnumSource(value = TaskStatus.class, names = {"PENDING", "IN_PROGRESS"})
     @DisplayName("Dado un estado PENDING o IN_PROGRESS, cuando se consulta isTerminal, entonces retorna falso")
     void shouldReturnFalseWhenStatusIsNotTerminal(TaskStatus status) {
-        // Arrange & Act
+        // Arrange: estado provisto por el parámetro o el propio enum
+
+        // Act
         boolean result = status.isTerminal();
 
         // Assert
@@ -38,7 +42,9 @@ class TaskStatusTest {
     @Test
     @DisplayName("Dado el enum TaskStatus, cuando se obtienen los activeStatuses, entonces contiene PENDING e IN_PROGRESS")
     void shouldReturnActiveStatusesExcludingTerminal() {
-        // Arrange & Act
+        // Arrange: estado provisto por el parámetro o el propio enum
+
+        // Act
         Set<TaskStatus> activeStatuses = TaskStatus.activeStatuses();
 
         // Assert

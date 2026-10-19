@@ -4,13 +4,5 @@
     "java.test.report.showAfterExecution": "always",
     "java.configuration.updateBuildConfiguration": "automatic",
     "java.jdt.ls.lombokSupport.enabled": true,
-    "java.compile.nullAnalysis.mode": "disabled",
-    "java.jdt.ls.java.home": "C:\\Program Files\\Java\\jdk-21",
-    "java.configuration.runtimes": [
-        {
-            "name": "JavaSE-21",
-            "path": "C:\\Program Files\\Java\\jdk-21",
-            "default": true
-        }
-    ]
+    "java.compile.nullAnalysis.mode": "disabled"
 }

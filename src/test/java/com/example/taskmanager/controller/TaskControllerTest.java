@@ -88,7 +88,7 @@ class TaskControllerTest {
     }
 
     @Test
-    @DisplayName("should create task")
+    @DisplayName("Dado un CreateTaskRequest válido, cuando se invoca createTask, entonces responde 201 con la tarea creada")
     void shouldCreateTask() {
         // Arrange
         when(taskService.createTask(any(CreateTaskRequest.class)))
@@ -105,7 +105,7 @@ class TaskControllerTest {
     }
 
     @Test
-    @DisplayName("should get all tasks")
+    @DisplayName("Dado un servicio con tareas, cuando se invoca getAllTasks, entonces responde 200 con la lista")
     void shouldGetAllTasks() {
         // Arrange
         when(taskService.findTasks(any()))
@@ -122,7 +122,7 @@ class TaskControllerTest {
     }
 
     @Test
-    @DisplayName("should search tasks with pagination")
+    @DisplayName("Dado un criterio y paginación, cuando se invoca searchTasks, entonces responde 200 con PageResponse")
     void shouldSearchTasksWithPagination() {
         // Arrange
         PageResponse<TaskResponse> pageResponse = new PageResponse<>(
@@ -145,7 +145,7 @@ class TaskControllerTest {
     }
 
     @Test
-    @DisplayName("should get tasks summary")
+    @DisplayName("Dado un resumen calculado, cuando se invoca getTasksSummary, entonces responde 200 con las estadísticas")
     void shouldGetTasksSummary() {
         // Arrange
         TaskSummaryResponse summaryResponse = new TaskSummaryResponse(
@@ -165,7 +165,7 @@ class TaskControllerTest {
     }
 
     @Test
-    @DisplayName("should return 404 when task is not found")
+    @DisplayName("Dado un id inexistente, cuando se consulta GET /api/tasks/{id}, entonces responde 404 estandarizado")
     void shouldReturnNotFoundForNonExistentTask() throws Exception {
         // Arrange
         when(taskService.getTaskById(99999L))
@@ -180,7 +180,7 @@ class TaskControllerTest {
     }
 
     @Test
-    @DisplayName("should delete task")
+    @DisplayName("Dado un id existente, cuando se invoca deleteTask, entonces responde 204 sin contenido")
     void shouldDeleteTask() {
         // Arrange
         doNothing().when(taskService).deleteTask(1L);

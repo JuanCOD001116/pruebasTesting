@@ -3,6 +3,7 @@ package com.example.taskmanager.service;
 import com.example.taskmanager.dto.request.CreateTaskRequest;
 import com.example.taskmanager.dto.request.UpdateTaskRequest;
 import com.example.taskmanager.dto.response.TaskResponse;
+import com.example.taskmanager.exception.InvalidTaskDataException;
 import com.example.taskmanager.exception.InvalidTaskStateException;
 import com.example.taskmanager.exception.TaskNotFoundException;
 import com.example.taskmanager.model.Task;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -42,6 +44,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -108,6 +111,7 @@ class TaskServiceTest {
     }
 
     @Test
+    @DisplayName("Dado un CreateTaskRequest válido, cuando se crea la tarea, entonces se guarda y retorna la respuesta con urgencia")
     void shouldCreateTaskSuccessfully() {
         // Arrange
         Task savedTask = Task.builder()
@@ -137,6 +141,7 @@ class TaskServiceTest {
     }
 
     @Test
+    @DisplayName("Dado un id existente, cuando se consulta la tarea, entonces retorna su respuesta")
     void shouldGetTaskByIdSuccessfully() {
         // Arrange
         when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
@@ -152,6 +157,7 @@ class TaskServiceTest {
     }
 
     @Test
+    @DisplayName("Dado un id inexistente, cuando se consulta la tarea, entonces lanza TaskNotFoundException")
     void shouldThrowTaskNotFoundExceptionWhenTaskDoesNotExist() {
         // Arrange
         when(taskRepository.findById(999L)).thenReturn(Optional.empty());
@@ -163,13 +169,12 @@ class TaskServiceTest {
 
     @Test
     @DisplayName("Dado un criterio de busqueda, cuando se ejecuta findTasks, entonces retorna la lista mapeada a respuesta")
-    @SuppressWarnings("unchecked")
     void shouldFindTasksSuccessfullyWithCriteria() {
         // Arrange
         TaskSearchCriteria criteria = new TaskSearchCriteria(
                 TaskStatus.PENDING, TaskPriority.MEDIUM, null, null, null, null, null
         );
-        when(taskRepository.findAll(any(Specification.class))).thenReturn(List.of(testTask));
+        when(taskRepository.findAll(ArgumentMatchers.<Specification<Task>>any())).thenReturn(List.of(testTask));
 
         // Act
         List<TaskResponse> response = taskService.findTasks(criteria);
@@ -178,18 +183,17 @@ class TaskServiceTest {
         assertNotNull(response);
         assertEquals(1, response.size());
         assertEquals(testTask.getId(), response.get(0).getId());
-        verify(taskRepository, times(1)).findAll(any(Specification.class));
+        verify(taskRepository, times(1)).findAll(ArgumentMatchers.<Specification<Task>>any());
     }
 
     @Test
     @DisplayName("Dado un criterio y paginacion valida, cuando se ejecuta searchTasks, entonces retorna PageResponse")
-    @SuppressWarnings("unchecked")
     void shouldSearchTasksWithPaginationSuccessfully() {
         // Arrange
         TaskSearchCriteria criteria = new TaskSearchCriteria(null, null, null, null, null, null, null);
         Pageable pageable = PageRequest.of(0, 10);
         Page<Task> page = new PageImpl<>(List.of(testTask), pageable, 1);
-        when(taskRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+        when(taskRepository.findAll(ArgumentMatchers.<Specification<Task>>any(), eq(pageable))).thenReturn(page);
 
         // Act
         PageResponse<TaskResponse> response = taskService.searchTasks(criteria, pageable);
@@ -201,15 +205,14 @@ class TaskServiceTest {
         assertEquals(1, response.totalPages());
         assertEquals(0, response.page());
         assertEquals(10, response.size());
-        verify(taskRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+        verify(taskRepository, times(1)).findAll(ArgumentMatchers.<Specification<Task>>any(), eq(pageable));
     }
 
     @Test
     @DisplayName("Dado getAllTasks, cuando se invoca, entonces delega a findTasks con criterio nulo")
-    @SuppressWarnings("unchecked")
     void shouldGetAllTasksDelegatingToFindTasks() {
         // Arrange
-        when(taskRepository.findAll(any(Specification.class))).thenReturn(List.of(testTask));
+        when(taskRepository.findAll(ArgumentMatchers.<Specification<Task>>any())).thenReturn(List.of(testTask));
 
         // Act
         List<TaskResponse> response = taskService.getAllTasks();
@@ -217,10 +220,11 @@ class TaskServiceTest {
         // Assert
         assertNotNull(response);
         assertEquals(1, response.size());
-        verify(taskRepository, times(1)).findAll(any(Specification.class));
+        verify(taskRepository, times(1)).findAll(ArgumentMatchers.<Specification<Task>>any());
     }
 
     @Test
+    @DisplayName("Dado un UpdateTaskRequest sin cambio de estado, cuando se actualiza, entonces valida el dueDate y guarda")
     void shouldUpdateTaskSuccessfully() {
         // Arrange
         when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
@@ -239,15 +243,70 @@ class TaskServiceTest {
     }
 
     @Test
+    @DisplayName("Dado un PUT que cambia el estado y trae assignedTo, cuando se actualiza, entonces valida la transición con el assignedTo del request")
+    void shouldValidateTransitionWithRequestAssigneeWhenStatusChanges() {
+        // Arrange
+        UpdateTaskRequest request = UpdateTaskRequest.builder()
+                .status(TaskStatus.IN_PROGRESS)
+                .assignedTo("Lucía Pérez")
+                .build();
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(taskRepository.save(any(Task.class))).thenReturn(testTask);
+
+        // Act
+        taskService.updateTask(1L, request);
+
+        // Assert
+        verify(taskStatusTransitionValidator, times(1))
+                .validate(TaskStatus.PENDING, TaskStatus.IN_PROGRESS, "Lucía Pérez");
+    }
+
+    @Test
+    @DisplayName("Dado un PUT que cambia el estado sin assignedTo, cuando se actualiza, entonces valida la transición con el assignedTo actual de la tarea")
+    void shouldValidateTransitionWithCurrentAssigneeWhenRequestHasNone() {
+        // Arrange
+        UpdateTaskRequest request = UpdateTaskRequest.builder()
+                .status(TaskStatus.CANCELLED)
+                .build();
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(taskRepository.save(any(Task.class))).thenReturn(testTask);
+
+        // Act
+        taskService.updateTask(1L, request);
+
+        // Assert
+        verify(taskStatusTransitionValidator, times(1))
+                .validate(TaskStatus.PENDING, TaskStatus.CANCELLED, "John Doe");
+    }
+
+    @Test
+    @DisplayName("Dado un PUT con el mismo estado actual, cuando se actualiza, entonces no invoca el validador de transición")
+    void shouldSkipTransitionValidationWhenStatusIsUnchanged() {
+        // Arrange
+        UpdateTaskRequest request = UpdateTaskRequest.builder()
+                .title("Mismo estado, nuevo título")
+                .status(TaskStatus.PENDING)
+                .build();
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(taskRepository.save(any(Task.class))).thenReturn(testTask);
+
+        // Act
+        taskService.updateTask(1L, request);
+
+        // Assert
+        verify(taskStatusTransitionValidator, never()).validate(any(), any(), any());
+    }
+
+    @Test
     @DisplayName("Dado un dueDate inválido al crear, cuando se invoca createTask, entonces lanza InvalidTaskDataException")
     void shouldThrowInvalidTaskDataExceptionWhenCreatingTaskWithInvalidDueDate() {
         // Arrange
-        doThrow(new com.example.taskmanager.exception.InvalidTaskDataException("Due date cannot be in the past"))
+        doThrow(new InvalidTaskDataException("Due date cannot be in the past"))
                 .when(taskDueDateValidator)
                 .validateDueDateForCreation(createRequest.getDueDate());
 
         // Act & Assert
-        assertThrows(com.example.taskmanager.exception.InvalidTaskDataException.class,
+        assertThrows(InvalidTaskDataException.class,
                 () -> taskService.createTask(createRequest));
         verify(taskRepository, times(0)).save(any(Task.class));
     }
@@ -257,17 +316,18 @@ class TaskServiceTest {
     void shouldThrowInvalidTaskDataExceptionWhenUpdatingTaskWithInvalidDueDate() {
         // Arrange
         when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
-        doThrow(new com.example.taskmanager.exception.InvalidTaskDataException("Due date cannot be in the past"))
+        doThrow(new InvalidTaskDataException("Due date cannot be in the past"))
                 .when(taskDueDateValidator)
                 .validateDueDateForUpdate(testTask.getDueDate(), updateRequest.getDueDate());
 
         // Act & Assert
-        assertThrows(com.example.taskmanager.exception.InvalidTaskDataException.class,
+        assertThrows(InvalidTaskDataException.class,
                 () -> taskService.updateTask(1L, updateRequest));
         verify(taskRepository, times(0)).save(any(Task.class));
     }
 
     @Test
+    @DisplayName("Dado un id inexistente, cuando se actualiza la tarea, entonces lanza TaskNotFoundException")
     void shouldThrowTaskNotFoundExceptionWhenUpdatingNonExistentTask() {
         // Arrange
         when(taskRepository.findById(999L)).thenReturn(Optional.empty());
@@ -278,6 +338,7 @@ class TaskServiceTest {
     }
 
     @Test
+    @DisplayName("Dada una tarea PENDING asignada, cuando se cambia a IN_PROGRESS, entonces valida la transición y guarda")
     void shouldUpdateTaskStatusSuccessfully() {
         // Arrange
         when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
@@ -296,6 +357,7 @@ class TaskServiceTest {
     }
 
     @Test
+    @DisplayName("Dada una tarea CANCELLED, cuando se cambia a PENDING, entonces propaga InvalidTaskStateException")
     void shouldThrowInvalidTaskStateExceptionWhenChangingStatusFromCancelled() {
         // Arrange
         testTask.setStatus(TaskStatus.CANCELLED);
@@ -311,6 +373,7 @@ class TaskServiceTest {
     }
 
     @Test
+    @DisplayName("Dado un id existente, cuando se elimina la tarea, entonces invoca deleteById")
     void shouldDeleteTaskSuccessfully() {
         // Arrange
         when(taskRepository.existsById(1L)).thenReturn(true);
@@ -324,6 +387,7 @@ class TaskServiceTest {
     }
 
     @Test
+    @DisplayName("Dado un id inexistente, cuando se elimina la tarea, entonces lanza TaskNotFoundException")
     void shouldThrowTaskNotFoundExceptionWhenDeletingNonExistentTask() {
         // Arrange
         when(taskRepository.existsById(999L)).thenReturn(false);

@@ -23,7 +23,9 @@ class ActuatorHealthIntegrationTest {
     @Test
     @DisplayName("Dado el endpoint de salud de Actuator, cuando se consulta /actuator/health, entonces responde 200 UP")
     void shouldReturnHealthStatusUp() throws Exception {
-        // Arrange - Act - Assert
+        // Arrange: no requiere datos previos
+
+        // Act & Assert
         mockMvc.perform(get("/actuator/health"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UP"));

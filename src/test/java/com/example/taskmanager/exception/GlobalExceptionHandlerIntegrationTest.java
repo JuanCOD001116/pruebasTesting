@@ -10,6 +10,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -26,7 +27,9 @@ class GlobalExceptionHandlerIntegrationTest {
     @Test
     @DisplayName("Dado un parámetro de tipo enum inválido en query, cuando se consulta GET /api/tasks?status=FOO, entonces responde 400 estandarizado")
     void shouldReturn400WhenMethodArgumentTypeMismatch() throws Exception {
-        // Arrange & Act & Assert
+        // Arrange: no requiere datos previos
+
+        // Act & Assert
         mockMvc.perform(get("/api/tasks")
                         .param("status", "INVALID_ENUM_VALUE"))
                 .andExpect(status().isBadRequest())
@@ -54,7 +57,9 @@ class GlobalExceptionHandlerIntegrationTest {
     @Test
     @DisplayName("Dado un ID que no existe, cuando se consulta GET /api/tasks/{id}, entonces responde 404 estandarizado")
     void shouldReturn404WhenTaskNotFound() throws Exception {
-        // Arrange & Act & Assert
+        // Arrange: no requiere datos previos
+
+        // Act & Assert
         mockMvc.perform(get("/api/tasks/{id}", 999999L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value(404))
@@ -65,11 +70,55 @@ class GlobalExceptionHandlerIntegrationTest {
     @Test
     @DisplayName("Dado un path variable inválido, cuando se consulta GET /api/tasks/{id} con texto, entonces responde 400 por type mismatch")
     void shouldReturn400WhenPathVariableTypeMismatch() throws Exception {
-        // Arrange & Act & Assert
+        // Arrange: no requiere datos previos
+
+        // Act & Assert
         mockMvc.perform(get("/api/tasks/not-a-number"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.message").value(containsString("Parámetro inválido 'id'")))
                 .andExpect(jsonPath("$.path").value("/api/tasks/not-a-number"));
+    }
+
+    @Test
+    @DisplayName("Dada una ruta que no existe, cuando se consulta, entonces responde 404 estandarizado y no 500")
+    void shouldReturn404WhenRouteDoesNotExist() throws Exception {
+        // Arrange: no requiere datos previos
+
+        // Act & Assert
+        mockMvc.perform(get("/api/tareas-inexistentes"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
+                .andExpect(jsonPath("$.message").value("Not Found"))
+                .andExpect(jsonPath("$.path").value("/api/tareas-inexistentes"));
+    }
+
+    @Test
+    @DisplayName("Dado un método HTTP no soportado, cuando se envía DELETE /api/tasks, entonces responde 405 estandarizado y no 500")
+    void shouldReturn405WhenMethodIsNotSupported() throws Exception {
+        // Arrange: no requiere datos previos
+
+        // Act & Assert
+        mockMvc.perform(delete("/api/tasks"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.code").value(405))
+                .andExpect(jsonPath("$.message").value("Method Not Allowed"))
+                .andExpect(jsonPath("$.path").value("/api/tasks"));
+    }
+
+    @Test
+    @DisplayName("Dado un Content-Type no soportado, cuando se envía POST /api/tasks como texto plano, entonces responde 415 estandarizado y no 500")
+    void shouldReturn415WhenMediaTypeIsNotSupported() throws Exception {
+        // Arrange
+        String plainBody = "título en texto plano";
+
+        // Act & Assert
+        mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content(plainBody))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.code").value(415))
+                .andExpect(jsonPath("$.message").value("Unsupported Media Type"))
+                .andExpect(jsonPath("$.path").value("/api/tasks"));
     }
 }

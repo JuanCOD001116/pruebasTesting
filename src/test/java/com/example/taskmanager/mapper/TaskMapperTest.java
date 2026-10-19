@@ -56,7 +56,9 @@ class TaskMapperTest {
     @Test
     @DisplayName("Dado un CreateTaskRequest valido, cuando se mapea a entidad, entonces los campos coinciden")
     void shouldConvertCreateTaskRequestToEntity() {
-        // Arrange & Act
+        // Arrange: fixtures preparados en setUp()
+
+        // Act
         Task entity = TaskMapper.toEntity(createRequest);
 
         // Assert
@@ -72,7 +74,9 @@ class TaskMapperTest {
     @Test
     @DisplayName("Dado un UpdateTaskRequest valido, cuando se actualiza la entidad, entonces los campos provistos se actualizan")
     void shouldConvertUpdateTaskRequestToEntity() {
-        // Arrange & Act
+        // Arrange: fixtures preparados en setUp()
+
+        // Act
         Task updatedEntity = TaskMapper.toEntity(updateRequest, testTask);
 
         // Assert
@@ -86,7 +90,9 @@ class TaskMapperTest {
     @Test
     @DisplayName("Dada una entidad Task, cuando se mapea a respuesta, entonces todos los campos coinciden")
     void shouldConvertTaskEntityToResponse() {
-        // Arrange & Act
+        // Arrange: fixtures preparados en setUp()
+
+        // Act
         TaskResponse response = TaskMapper.toResponse(testTask);
 
         // Assert
@@ -124,7 +130,9 @@ class TaskMapperTest {
     @Test
     @DisplayName("Dada una entidad Task y una urgencia, cuando se mapea a respuesta, entonces la urgencia se mapea correctamente")
     void shouldConvertTaskEntityToResponseWithUrgency() {
-        // Arrange & Act
+        // Arrange: fixtures preparados en setUp()
+
+        // Act
         TaskResponse response = TaskMapper.toResponse(testTask, TaskUrgency.AT_RISK);
 
         // Assert

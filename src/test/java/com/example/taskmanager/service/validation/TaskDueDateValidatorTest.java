@@ -26,28 +26,34 @@ class TaskDueDateValidatorTest {
     }
 
     @Test
-    @DisplayName("R7: Al crear, si dueDate es null, se acepta")
+    @DisplayName("R7: Dado un dueDate null, cuando se valida al crear, entonces se acepta")
     void shouldAcceptNullDueDateOnCreation() {
-        // Arrange & Act & Assert
+        // Arrange: validator con Clock fijo en setUp()
+
+        // Act & Assert
         assertDoesNotThrow(() -> validator.validateDueDateForCreation(null));
     }
 
     @Test
-    @DisplayName("R7: Al crear, si dueDate es hoy, se acepta")
+    @DisplayName("R7: Dado un dueDate igual a hoy, cuando se valida al crear, entonces se acepta")
     void shouldAcceptTodayDueDateOnCreation() {
-        // Arrange & Act & Assert
+        // Arrange: validator con Clock fijo en setUp()
+
+        // Act & Assert
         assertDoesNotThrow(() -> validator.validateDueDateForCreation(TODAY));
     }
 
     @Test
-    @DisplayName("R7: Al crear, si dueDate es mañana, se acepta")
+    @DisplayName("R7: Dado un dueDate de mañana, cuando se valida al crear, entonces se acepta")
     void shouldAcceptFutureDueDateOnCreation() {
-        // Arrange & Act & Assert
+        // Arrange: validator con Clock fijo en setUp()
+
+        // Act & Assert
         assertDoesNotThrow(() -> validator.validateDueDateForCreation(TODAY.plusDays(1)));
     }
 
     @Test
-    @DisplayName("R7: Al crear, si dueDate es anterior a hoy, rechaza con InvalidTaskDataException")
+    @DisplayName("R7: Dado un dueDate anterior a hoy, cuando se valida al crear, entonces lanza InvalidTaskDataException")
     void shouldRejectPastDueDateOnCreation() {
         // Arrange
         LocalDate yesterday = TODAY.minusDays(1);
@@ -61,14 +67,16 @@ class TaskDueDateValidatorTest {
     }
 
     @Test
-    @DisplayName("R8: Al actualizar, si newDueDate es null, se acepta")
+    @DisplayName("R8: Dado un nuevo dueDate null, cuando se valida al actualizar, entonces se acepta")
     void shouldAcceptNullDueDateOnUpdate() {
-        // Arrange & Act & Assert
+        // Arrange: validator con Clock fijo en setUp()
+
+        // Act & Assert
         assertDoesNotThrow(() -> validator.validateDueDateForUpdate(TODAY, null));
     }
 
     @Test
-    @DisplayName("R8: Al actualizar, si dueDate no cambia aunque sea en el pasado, se acepta")
+    @DisplayName("R8: Dado un dueDate pasado que no cambia, cuando se valida al actualizar, entonces se acepta")
     void shouldAcceptUnchangedPastDueDateOnUpdate() {
         // Arrange
         LocalDate pastDate = TODAY.minusDays(5);
@@ -78,7 +86,7 @@ class TaskDueDateValidatorTest {
     }
 
     @Test
-    @DisplayName("R8: Al actualizar, si dueDate cambia a una fecha anterior a hoy, rechaza con InvalidTaskDataException")
+    @DisplayName("R8: Dado un dueDate que cambia a una fecha pasada, cuando se valida al actualizar, entonces lanza InvalidTaskDataException")
     void shouldRejectWhenDueDateChangesToPastDateOnUpdate() {
         // Arrange
         LocalDate pastDate = TODAY.minusDays(1);
@@ -92,7 +100,7 @@ class TaskDueDateValidatorTest {
     }
 
     @Test
-    @DisplayName("R8: Al actualizar, si dueDate cambia a hoy o futuro, se acepta")
+    @DisplayName("R8: Dado un dueDate que cambia a hoy o a una fecha futura, cuando se valida al actualizar, entonces se acepta")
     void shouldAcceptWhenDueDateChangesToTodayOrFutureOnUpdate() {
         // Arrange
         LocalDate futureDate = TODAY.plusDays(3);
