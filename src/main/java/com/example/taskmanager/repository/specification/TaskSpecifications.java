@@ -27,27 +27,35 @@ public final class TaskSpecifications {
     }
 
     public static Specification<Task> hasPriority(TaskPriority priority) {
-        return priority == null ? null : (root, query, cb) -> cb.equal(root.get(ATTR_PRIORITY), priority);
+        return priority == null
+                ? null
+                : (root, query, cb) -> cb.equal(root.get(ATTR_PRIORITY), priority);
     }
 
     public static Specification<Task> assignedToIgnoreCase(String assignedTo) {
         return assignedTo == null || assignedTo.isBlank()
                 ? null
-                : (root, query, cb) -> cb.equal(cb.lower(root.get(ATTR_ASSIGNED_TO)), assignedTo.toLowerCase());
+                : (root, query, cb) -> cb.equal(
+                        cb.lower(root.get(ATTR_ASSIGNED_TO)), assignedTo.toLowerCase());
     }
 
     public static Specification<Task> titleContains(String text) {
         return text == null || text.isBlank()
                 ? null
-                : (root, query, cb) -> cb.like(cb.lower(root.get(ATTR_TITLE)), "%" + text.toLowerCase() + "%");
+                : (root, query, cb) -> cb.like(
+                        cb.lower(root.get(ATTR_TITLE)), "%" + text.toLowerCase() + "%");
     }
 
     public static Specification<Task> dueOnOrAfter(LocalDate dueFrom) {
-        return dueFrom == null ? null : (root, query, cb) -> cb.greaterThanOrEqualTo(root.get(ATTR_DUE_DATE), dueFrom);
+        return dueFrom == null
+                ? null
+                : (root, query, cb) -> cb.greaterThanOrEqualTo(root.get(ATTR_DUE_DATE), dueFrom);
     }
 
     public static Specification<Task> dueOnOrBefore(LocalDate dueTo) {
-        return dueTo == null ? null : (root, query, cb) -> cb.lessThanOrEqualTo(root.get(ATTR_DUE_DATE), dueTo);
+        return dueTo == null
+                ? null
+                : (root, query, cb) -> cb.lessThanOrEqualTo(root.get(ATTR_DUE_DATE), dueTo);
     }
 
     public static Specification<Task> overdue(Boolean overdue, LocalDate today) {

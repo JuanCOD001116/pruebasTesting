@@ -60,7 +60,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(
             HttpMessageNotReadableException ex, WebRequest request) {
         log.warn("Malformed JSON request: {}", ex.getMessage());
-        return buildResponse(HttpStatus.BAD_REQUEST, "Cuerpo de solicitud mal formado o inválido", request);
+        return buildResponse(HttpStatus.BAD_REQUEST,
+                "Cuerpo de solicitud mal formado o inválido", request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -73,7 +74,8 @@ public class GlobalExceptionHandler {
                 .stream()
                 .map(error -> {
                     if (error.isBindingFailure() || "typeMismatch".equals(error.getCode())) {
-                        return String.format(INVALID_PARAMETER_MESSAGE, error.getField(), error.getRejectedValue());
+                        return String.format(INVALID_PARAMETER_MESSAGE,
+                                error.getField(), error.getRejectedValue());
                     }
                     return error.getField() + ": " + error.getDefaultMessage();
                 })
@@ -86,7 +88,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleGlobalException(
             Exception ex, WebRequest request) {
         log.error("An unexpected error occurred: ", ex);
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", request);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Error interno del servidor", request);
     }
 
     private ResponseEntity<ErrorResponse> buildResponse(

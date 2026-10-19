@@ -109,7 +109,8 @@ public class TaskServiceImpl implements TaskService {
         taskDueDateValidator.validateDueDateForUpdate(task.getDueDate(), request.getDueDate());
 
         if (request.getStatus() != null && request.getStatus() != task.getStatus()) {
-            taskStatusTransitionValidator.validate(task.getStatus(), request.getStatus(), resolveAssignee(request, task));
+            taskStatusTransitionValidator.validate(
+                    task.getStatus(), request.getStatus(), resolveAssignee(request, task));
         }
 
         Task updatedTask = TaskMapper.toEntity(request, task);

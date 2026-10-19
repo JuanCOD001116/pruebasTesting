@@ -13,7 +13,8 @@ public class TaskStatusTransitionValidator {
 
     private static final Map<TaskStatus, Set<TaskStatus>> ALLOWED_TRANSITIONS = Map.of(
             TaskStatus.PENDING, EnumSet.of(TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED),
-            TaskStatus.IN_PROGRESS, EnumSet.of(TaskStatus.PENDING, TaskStatus.DONE, TaskStatus.CANCELLED),
+            TaskStatus.IN_PROGRESS,
+            EnumSet.of(TaskStatus.PENDING, TaskStatus.DONE, TaskStatus.CANCELLED),
             TaskStatus.DONE, EnumSet.noneOf(TaskStatus.class),
             TaskStatus.CANCELLED, EnumSet.noneOf(TaskStatus.class));
 
@@ -36,6 +37,7 @@ public class TaskStatusTransitionValidator {
     private InvalidTaskStateException invalid(
             TaskStatus currentStatus, TaskStatus newStatus, String reason) {
         return new InvalidTaskStateException(
-                "Transición de estado inválida de " + currentStatus + " a " + newStatus + ": " + reason);
+                "Transición de estado inválida de " + currentStatus + " a " + newStatus
+                        + ": " + reason);
     }
 }

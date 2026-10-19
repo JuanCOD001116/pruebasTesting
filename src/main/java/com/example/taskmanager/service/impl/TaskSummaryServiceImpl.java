@@ -43,12 +43,14 @@ public class TaskSummaryServiceImpl implements TaskSummaryService {
         for (TaskPriority priority : TaskPriority.values()) {
             byPriority.put(priority, 0L);
         }
-        taskRepository.countByPriority().forEach(pc -> byPriority.put(pc.getPriority(), pc.getTotal()));
+        taskRepository.countByPriority()
+                .forEach(pc -> byPriority.put(pc.getPriority(), pc.getTotal()));
 
         long total = taskRepository.count();
 
         LocalDate today = LocalDate.now(clock);
-        long overdue = taskRepository.countByDueDateBeforeAndStatusIn(today, TaskStatus.activeStatuses());
+        long overdue = taskRepository.countByDueDateBeforeAndStatusIn(
+                today, TaskStatus.activeStatuses());
 
         long doneCount = byStatus.get(TaskStatus.DONE);
         long cancelledCount = byStatus.get(TaskStatus.CANCELLED);
