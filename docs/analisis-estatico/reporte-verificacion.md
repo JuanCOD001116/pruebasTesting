@@ -12,10 +12,10 @@
 | Estado | Cantidad |
 |---|---|
 | ✅ OK | 47 |
-| 🔧 Corregido | 12 |
+| 🔧 Corregido | 14 |
 | ⬆️ Mejorado | 10 |
 | ❌→✅ Implementado (faltaba) | 1 |
-| ⚠️ Pendiente manual | 2 |
+| ⚠️ Pendiente manual | 0 (solo quedan las evidencias del taller y el merge; ver el final) |
 
 72 ítems: los de §3 del spec 12 (algunos divididos en sub-ítems "b") más las 6 desviaciones
 indicadas por el usuario.
@@ -60,7 +60,7 @@ Final: `./gradlew clean build` sobre el último commit de esta rama.
 
 | ID | Estado | Hallazgo | Acción | Commit |
 |---|---|---|---|---|
-| 06.1 | ⚠️ | El XML tiene `S3776`=10, `S1541`=10, `S134`=3, `S1067`=3, `S138`=40, `S107`=5/7 y las reglas de §4.2–4.3, **excepto** `java:S1128`, `java:S1068`, `java:S5778` y `java:S5786`, que la API confirma inactivas. | Requiere la UI de SonarCloud (pendiente manual §2). | — |
+| 06.1 | 🔧 | El XML tiene `S3776`=10, `S1541`=10, `S134`=3, `S1067`=3, `S138`=40, `S107`=5/7 y las reglas de §4.2–4.3, **excepto** `java:S1128`, `java:S1068`, `java:S5778` y `java:S5786`, que la API confirmaba inactivas. | Tras comprobar que el código no las viola, se activaron con la API de SonarCloud (317 → 321 reglas) y se versionó el backup nuevo. | `57e34ba` |
 | 06.2 | ✅ | `qualityprofiles/search` → `TaskManager Java Way` (hereda de Sonar way, 317 reglas). | — | — |
 | 07.1 | ✅ | `quality-gate.md` documenta todas las condiciones de §2 con justificación. | — | — |
 | 07.2 | ✅ | `get_by_project` → `TaskManager Gate`; `project_status` de `main` → `OK`. | — | — |
@@ -74,7 +74,7 @@ Final: `./gradlew clean build` sobre el último commit de esta rama.
 | H-01 | ✅ | Sin `demo`; `jar` deshabilitado; `build/libs` solo contiene `task-manager-api.jar`. | — | — |
 | H-02 | ✅ | `application.properties` no existe. | — | — |
 | H-03 | ✅ | Sin `dialect`; dev con `MODE=PostgreSQL;DB_CLOSE_DELAY=-1` y `validate`; `max-page-size: 100`. `bootRun` con perfil dev: Flyway aplica V1 y V2 y `/actuator/health` → `UP`. | — | — |
-| H-04 | ⚠️ | Revisión estática OK: Actuator solo `health`, `USER app`, JAR fijo, healthcheck con `wget`. `docker build` no se pudo ejecutar (Docker Desktop apagado). | Pendiente manual §3. | — |
+| H-04 | 🔧 | Revisión estática OK (Actuator solo `health`, `USER app`, JAR fijo, healthcheck con `wget`), pero `docker build` **fallaba** en Windows: `/bin/sh: ./gradlew: not found` (exit 127) porque `core.autocrlf=true` deja `gradlew` con CRLF. | `.gitattributes` con `eol=lf` para `gradlew` y `*.sh`. Verificado: la imagen se construye, corre como uid 100 (`app`), `/actuator/health` → `UP` y el HEALTHCHECK de Docker queda `healthy`. | `74be89b` |
 | H-05 | ✅ | `Task` sin `@Data`, `equals/hashCode` por `id`, auditoría con `DateTimeProvider` desde `Clock` en `JpaAuditingConfig`. | — | — |
 | H-06 | 🔧 | Al levantar la app, rutas inexistentes, métodos no soportados y `Content-Type` no soportado devolvían **500** (log `error`): el handler genérico capturaba las excepciones de Spring MVC. | Handler que usa el status propio de cada excepción → 404/405/415 con cuerpo estandarizado y log `warn`. 3 tests MockMvc que fallaban antes. | `deead13` |
 | H-06b | ⬆️ | El handler 500 cumplía el spec (mensaje fijo) pero no tenía ningún test; literal duplicado del mensaje de parámetro inválido. | Test unitario que prueba que `ex.getMessage()` no se filtra; constante `INVALID_PARAMETER_MESSAGE`. | `162bce4` |
@@ -170,18 +170,9 @@ Final: `./gradlew clean build` sobre el último commit de esta rama.
    ```bash
    curl -s "https://sonarcloud.io/api/qualitygates/project_status?projectKey=JuanCOD001116_pruebasTesting"
    ```
-2. **Activar 4 reglas faltantes del Quality Profile (spec 06 §4.2–4.3).**
-   1. SonarCloud → organización `juancod001116` → *Quality Profiles* → *Java* → **TaskManager Java Way**.
-   2. *Activate More* → buscar y activar con la severidad por defecto: `java:S1128` (*Unnecessary imports should be removed*), `java:S1068` (*Unused "private" fields should be removed*), `java:S5778` (*Only one method invocation is expected when testing runtime exceptions*), `java:S5786` (*JUnit5 test classes and methods should have default package visibility*).
-   3. ⚙ → *Back up* → reemplazar `quality/sonar/taskmanager-java-way.xml` y commitearlo.
-   4. Volver a analizar (push a `main` o al PR). Si aparecen issues en código existente, corregirlos; no desactivar las reglas.
-3. **Verificar la imagen Docker (H-04).** Con Docker Desktop encendido:
-   ```bash
-   docker build -t task-manager-api:verify .
-   docker run --rm task-manager-api:verify id    # debe mostrar uid de "app", no root
-   ```
-4. **Configuración del IDE (D6).** En el `settings.json` de usuario de Antigravity (no en el del proyecto) agregar `"java.jdt.ls.java.home": "C:\\Program Files\\Java\\jdk-21"` si vuelven los falsos positivos de Lombok con el JDK 27 del language server.
-5. **`gradle/actions` v6 (opcional):** si se aceptan los *Terms of Use* de Gradle, cambiar `setup-gradle@v5` por `@v6` en el workflow.
+2. **Evidencias del taller** (ver sección siguiente).
+3. **Configuración del IDE (D6).** En el `settings.json` de usuario de Antigravity (no en el del proyecto) agregar `"java.jdt.ls.java.home": "C:\\Program Files\\Java\\jdk-21"` si vuelven los falsos positivos de Lombok con el JDK 27 del language server.
+4. **`gradle/actions` v6 (opcional):** si se aceptan los *Terms of Use* de Gradle, cambiar `setup-gradle` al SHA completo de la última v6 en el workflow.
 
 ## Evidencias faltantes (spec 04 §6)
 

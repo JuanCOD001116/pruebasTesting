@@ -109,6 +109,7 @@ pruebasTesting/
 ├── Dockerfile                         # Multi-stage build con usuario app
 ├── docker-compose.yml
 ├── .env.example
+├── .gitattributes                     # gradlew con LF para que docker build funcione desde Windows
 └── README.md
 ```
 
