@@ -204,7 +204,7 @@ expone la complejidad por método; la regla `java:S1541` (umbral 10) no tiene is
 | `TerminalStatusRule` / `OverdueRule` / `DueSoonRule` | 2 | 2 | 2/2 | Una prueba unitaria por regla. |
 | `NoDueDateRule` | 3 | 3 | 4/4 | Guard clause + ternario. |
 | `TaskSpecifications.hasX(...)` | 2 | 2 | 2/2 | `overdue` mide 4 (guarda `null` + `if`). |
-| `TaskSummaryServiceImpl.getSummary` | 2 (`completionRate`) | 4 | 6/6 | El cálculo de la tasa vive dentro de `getSummary` (2 `for` + 1 `if` + 1). |
+| `TaskSummaryServiceImpl.completionRate` | 2 | **2** | 2/2 | Antes estaba dentro de `getSummary` (V(G) 4); se extrajo. `getSummary` queda en 3 (2 `for` + 1). |
 
 Máxima complejidad ciclomática por método en producción: **7** (`validate`). Cobertura JaCoCo
 final: 99.9 % de instrucciones y 97.8 % de ramas (164 pruebas).

@@ -52,19 +52,18 @@ public class TaskSummaryServiceImpl implements TaskSummaryService {
         long overdue = taskRepository.countByDueDateBeforeAndStatusIn(
                 today, TaskStatus.activeStatuses());
 
-        long doneCount = byStatus.get(TaskStatus.DONE);
-        long cancelledCount = byStatus.get(TaskStatus.CANCELLED);
-        long denominator = total - cancelledCount;
-
-        BigDecimal completionRate;
-        if (denominator <= 0) {
-            completionRate = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
-        } else {
-            completionRate = BigDecimal.valueOf(doneCount)
-                    .multiply(BigDecimal.valueOf(100))
-                    .divide(BigDecimal.valueOf(denominator), 2, RoundingMode.HALF_UP);
-        }
+        BigDecimal completionRate = completionRate(
+                byStatus.get(TaskStatus.DONE), total - byStatus.get(TaskStatus.CANCELLED));
 
         return new TaskSummaryResponse(total, byStatus, byPriority, overdue, completionRate);
+    }
+
+    private static BigDecimal completionRate(long doneCount, long denominator) {
+        if (denominator <= 0) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        return BigDecimal.valueOf(doneCount)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(denominator), 2, RoundingMode.HALF_UP);
     }
 }
