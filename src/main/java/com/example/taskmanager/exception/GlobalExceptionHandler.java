@@ -1,15 +1,19 @@
 package com.example.taskmanager.exception;
 
 import com.example.taskmanager.dto.response.ErrorResponse;
+import jakarta.servlet.ServletException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -82,6 +86,20 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining(", "));
 
         return buildResponse(HttpStatus.BAD_REQUEST, "Validation failed: " + errors, request);
+    }
+
+    @ExceptionHandler({
+            NoResourceFoundException.class,
+            HttpRequestMethodNotSupportedException.class,
+            HttpMediaTypeNotSupportedException.class
+    })
+    public ResponseEntity<ErrorResponse> handleSpringWebException(
+            ServletException ex, WebRequest request) {
+        // Each listed type implements Spring's ErrorResponse and already knows its 4xx status
+        HttpStatus status = HttpStatus.valueOf(
+                ((org.springframework.web.ErrorResponse) ex).getStatusCode().value());
+        log.warn("Request rejected with {}: {}", status.value(), ex.getMessage());
+        return buildResponse(status, status.getReasonPhrase(), request);
     }
 
     @ExceptionHandler(Exception.class)
