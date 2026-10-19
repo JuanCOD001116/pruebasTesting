@@ -1,5 +1,7 @@
 package com.example.taskmanager.repository.specification;
 
+import com.example.taskmanager.config.ClockConfig;
+import com.example.taskmanager.config.JpaAuditingConfig;
 import com.example.taskmanager.dto.request.TaskSearchCriteria;
 import com.example.taskmanager.model.Task;
 import com.example.taskmanager.model.TaskPriority;
@@ -10,6 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -22,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DataJpaTest
+@Import({JpaAuditingConfig.class, ClockConfig.class})
 @ActiveProfiles("dev")
 class TaskSpecificationsTest {
 
