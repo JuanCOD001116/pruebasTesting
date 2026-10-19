@@ -18,6 +18,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DataJpaTest
@@ -208,5 +209,32 @@ class TaskSpecificationsTest {
 
         // Assert
         assertEquals(4, result.size());
+    }
+
+    @Test
+    @DisplayName("Dado assignedTo y text en blanco, cuando se consulta, entonces se ignoran como filtros y retorna todas las tareas")
+    void shouldIgnoreBlankTextFilters() {
+        // Arrange
+        TaskSearchCriteria blankCriteria = new TaskSearchCriteria(null, null, "   ", "\t", null, null, null);
+        Specification<Task> spec = TaskSpecifications.from(blankCriteria, today);
+
+        // Act
+        List<Task> result = taskRepository.findAll(spec);
+
+        // Assert
+        assertEquals(4, result.size());
+    }
+
+    @Test
+    @DisplayName("Dado el filtro overdue sin fecha de referencia, cuando se arma la especificación, entonces no se aplica ningún filtro")
+    void shouldNotBuildOverdueFilterWithoutReferenceDate() {
+        // Arrange
+        Boolean overdue = Boolean.TRUE;
+
+        // Act
+        Specification<Task> spec = TaskSpecifications.overdue(overdue, null);
+
+        // Assert
+        assertNull(spec);
     }
 }
