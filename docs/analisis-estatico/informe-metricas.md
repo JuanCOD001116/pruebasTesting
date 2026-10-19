@@ -79,6 +79,12 @@ La siguiente tabla refleja la configuración exacta exportada en `quality/sonar/
 | **`java:S6813`** | Field dependency injection should not be used | Activada | Major | Prohíbe `@Autowired` en atributos; exige inyección por constructor. |
 | **`java:S1192`** | String literals should not be duplicated | `threshold = 3`<br>`minimalLength = 5` | Critical | Obliga a extraer constantes reutilizables para mensajes repetidos. |
 | **`java:S2699`** | Tests should include assertions | Activada | Blocker | Garantiza que ningún método `@Test` carezca de aserciones válidas (evita pruebas superficiales). |
+| **`java:S1128`** | Unnecessary imports should be removed | Activada | Minor | Imports sin uso (spec 06 §4.2). Activada en la verificación final. |
+| **`java:S1068`** | Unused "private" fields should be removed | Activada | Major | Campos privados muertos (spec 06 §4.2). Activada en la verificación final. |
+| **`java:S5778`** | Only one method invocation is expected when testing runtime exceptions | Activada | Major | Lambdas de `assertThrows` limpias (spec 06 §4.3). Activada en la verificación final. |
+| **`java:S5786`** | JUnit5 test classes and methods should have default package visibility | Activada | Info | Convención JUnit 5 (spec 06 §4.3). Activada en la verificación final. |
+
+Total de reglas activas en el perfil: **321** (317 antes de la verificación final).
 
 ---
 
