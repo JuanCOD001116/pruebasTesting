@@ -109,8 +109,7 @@ public class TaskServiceImpl implements TaskService {
         taskDueDateValidator.validateDueDateForUpdate(task.getDueDate(), request.getDueDate());
 
         if (request.getStatus() != null && request.getStatus() != task.getStatus()) {
-            String assignedTo = request.getAssignedTo() != null ? request.getAssignedTo() : task.getAssignedTo();
-            taskStatusTransitionValidator.validate(task.getStatus(), request.getStatus(), assignedTo);
+            taskStatusTransitionValidator.validate(task.getStatus(), request.getStatus(), resolveAssignee(request, task));
         }
 
         Task updatedTask = TaskMapper.toEntity(request, task);
@@ -140,6 +139,10 @@ public class TaskServiceImpl implements TaskService {
         }
         taskRepository.deleteById(id);
         log.info("Task deleted successfully with id: {}", id);
+    }
+
+    private static String resolveAssignee(UpdateTaskRequest request, Task task) {
+        return request.getAssignedTo() != null ? request.getAssignedTo() : task.getAssignedTo();
     }
 
     private TaskResponse toResponse(Task task) {

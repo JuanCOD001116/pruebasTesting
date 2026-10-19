@@ -42,6 +42,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -236,6 +237,61 @@ class TaskServiceTest {
         verify(taskDueDateValidator, times(1)).validateDueDateForUpdate(testTask.getDueDate(), updateRequest.getDueDate());
         verify(taskRepository, times(1)).findById(1L);
         verify(taskRepository, times(1)).save(any(Task.class));
+    }
+
+    @Test
+    @DisplayName("Dado un PUT que cambia el estado y trae assignedTo, cuando se actualiza, entonces valida la transición con el assignedTo del request")
+    void shouldValidateTransitionWithRequestAssigneeWhenStatusChanges() {
+        // Arrange
+        UpdateTaskRequest request = UpdateTaskRequest.builder()
+                .status(TaskStatus.IN_PROGRESS)
+                .assignedTo("Lucía Pérez")
+                .build();
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(taskRepository.save(any(Task.class))).thenReturn(testTask);
+
+        // Act
+        taskService.updateTask(1L, request);
+
+        // Assert
+        verify(taskStatusTransitionValidator, times(1))
+                .validate(TaskStatus.PENDING, TaskStatus.IN_PROGRESS, "Lucía Pérez");
+    }
+
+    @Test
+    @DisplayName("Dado un PUT que cambia el estado sin assignedTo, cuando se actualiza, entonces valida la transición con el assignedTo actual de la tarea")
+    void shouldValidateTransitionWithCurrentAssigneeWhenRequestHasNone() {
+        // Arrange
+        UpdateTaskRequest request = UpdateTaskRequest.builder()
+                .status(TaskStatus.CANCELLED)
+                .build();
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(taskRepository.save(any(Task.class))).thenReturn(testTask);
+
+        // Act
+        taskService.updateTask(1L, request);
+
+        // Assert
+        verify(taskStatusTransitionValidator, times(1))
+                .validate(TaskStatus.PENDING, TaskStatus.CANCELLED, "John Doe");
+    }
+
+    @Test
+    @DisplayName("Dado un PUT con el mismo estado actual, cuando se actualiza, entonces no invoca el validador de transición")
+    void shouldSkipTransitionValidationWhenStatusIsUnchanged() {
+        // Arrange
+        UpdateTaskRequest request = UpdateTaskRequest.builder()
+                .title("Mismo estado, nuevo título")
+                .status(TaskStatus.PENDING)
+                .build();
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(taskRepository.save(any(Task.class))).thenReturn(testTask);
+
+        // Act
+        taskService.updateTask(1L, request);
+
+        // Assert
+        verify(taskStatusTransitionValidator, never()).validate(any(), any(), any());
     }
 
     @Test
