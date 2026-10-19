@@ -19,6 +19,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GlobalExceptionHandler {
 
+    private static final String INVALID_PARAMETER_MESSAGE = "Parámetro inválido '%s': valor '%s'";
+
     private final Clock clock;
 
     public GlobalExceptionHandler(Clock clock) {
@@ -50,7 +52,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatch(
             MethodArgumentTypeMismatchException ex, WebRequest request) {
         log.warn("Parameter type mismatch: {}", ex.getMessage());
-        String message = String.format("Parámetro inválido '%s': valor '%s'", ex.getName(), ex.getValue());
+        String message = String.format(INVALID_PARAMETER_MESSAGE, ex.getName(), ex.getValue());
         return buildResponse(HttpStatus.BAD_REQUEST, message, request);
     }
 
@@ -71,7 +73,7 @@ public class GlobalExceptionHandler {
                 .stream()
                 .map(error -> {
                     if (error.isBindingFailure() || "typeMismatch".equals(error.getCode())) {
-                        return String.format("Parámetro inválido '%s': valor '%s'", error.getField(), error.getRejectedValue());
+                        return String.format(INVALID_PARAMETER_MESSAGE, error.getField(), error.getRejectedValue());
                     }
                     return error.getField() + ": " + error.getDefaultMessage();
                 })
