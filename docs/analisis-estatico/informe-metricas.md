@@ -20,7 +20,7 @@ El análisis estático de código es una práctica de ingeniería de software or
 | **SonarCloud** | SaaS (Plan Free OSS) | Plataforma centralizada de análisis de código estático, gestión de Quality Profiles, evaluación de Quality Gates y auditoría de Security Hotspots. |
 | **JaCoCo** | `0.8.12` | Agente de cobertura de código para Java en tiempo de ejecución de pruebas unitarias e integración (`jacocoTestReport` y `jacocoTestCoverageVerification`). |
 | **GitHub Actions** | Hosted Runners (`ubuntu-latest`) | Orquestador de Integración Continua (CI). Ejecuta `./gradlew clean build sonar` en cada `push` a ramas principales y en cada `pull_request`. |
-| **Gradle** | `8.x` (Plugin `org.sonarqube: 6.0.1.5171`) | Build tool que compila, ejecuta la suite de pruebas JUnit 5, recolecta binarios de instrumentación `.exec` y transmite el reporte XML a SonarCloud. |
+| **Gradle** | `8.12` (Plugin `org.sonarqube: 7.5.0.8588`) | Build tool que compila, ejecuta la suite de pruebas JUnit 5, recolecta binarios de instrumentación `.exec` y transmite el reporte XML a SonarCloud. |
 
 ---
 
@@ -187,6 +187,28 @@ if (currentStatus == PENDING                                         // d3: if (
 | `TaskSpecifications` (nuevo) | — | 29 | Descompuesto en especificaciones atómicas de $V(G) \le 2$ cada una. |
 | `TaskUrgencyEvaluator` (Commit A vs B) | 9 (versión ingenua) | 4 (versión refactorizada) | Refactor a Chain of Responsibility. |
 
+### 5.3 Valores medidos por método tras la verificación final (spec 12)
+
+Medidos con JaCoCo (columna *Cxty* y ramas) sobre la rama `chore/verificacion-final`. Sonar no
+expone la complejidad por método; la regla `java:S1541` (umbral 10) no tiene issues abiertos.
+
+| Método | V(G) spec 10 §5 (manual) | V(G) JaCoCo | Ramas cubiertas | Comentario |
+|---|:---:|:---:|:---:|---|
+| `TaskController.getAllTasks` | 1 | 1 | — | Delegación a `findTasks(criteria)`. |
+| `TaskMapper.toEntity(Update, Task)` | 1 (+ helper 2) | 1 (+ `applyIfPresent` 2) | 2/2 | Coincide. |
+| `TaskServiceImpl.updateTask` | 3 | **3** | 4/4 | Antes medía 4: faltaba extraer `resolveAssignee` (corregido). |
+| `TaskServiceImpl.resolveAssignee` | — | 2 | 2/2 | Nuevo (extraído de `updateTask`). |
+| `TaskServiceImpl.deleteTask` | 2 | 2 | 2/2 | Coincide. |
+| `TaskStatusTransitionValidator.validate` | 7 | 7 | 12/12 | Coincide con el cálculo de §5.1. |
+| `TaskUrgencyEvaluator.evaluate` | 1 | 1 | — | Ya no tiene constructor secundario. |
+| `TerminalStatusRule` / `OverdueRule` / `DueSoonRule` | 2 | 2 | 2/2 | Una prueba unitaria por regla. |
+| `NoDueDateRule` | 3 | 3 | 4/4 | Guard clause + ternario. |
+| `TaskSpecifications.hasX(...)` | 2 | 2 | 2/2 | `overdue` mide 4 (guarda `null` + `if`). |
+| `TaskSummaryServiceImpl.getSummary` | 2 (`completionRate`) | 4 | 6/6 | El cálculo de la tasa vive dentro de `getSummary` (2 `for` + 1 `if` + 1). |
+
+Máxima complejidad ciclomática por método en producción: **7** (`validate`). Cobertura JaCoCo
+final: 99.9 % de instrucciones y 97.8 % de ramas (164 pruebas).
+
 ---
 
 ## 6. Complejidad Cognitiva (Spec 11) y Caso de Estudio
@@ -321,11 +343,11 @@ Durante el despliegue del pipeline y la auditoría de calidad se presentaron las
 6. **Simulación de Código Nuevo mediante Pull Request:**  
    Debido a que SonarCloud calcula el *New Code* basado en la fecha de los commits y no en la fecha del análisis, re-analizar commits antiguos en `main` no creaba una ventana de código nuevo adecuada. El ciclo deliberado **Failed → Passed** se ejecutó mediante el Pull Request #2.
 7. **Versiones de Framework y Plugins:**  
-   Spring Boot opera en la línea `3.3.x` / `3.4.x` y el plugin Gradle `org.sonarqube` en su versión oficial `6.0.1.5171`.
+   El proyecto nunca pasó a Spring Boot 3.4: `build.gradle` siempre declaró `3.3.0` (verificado en todo el historial). En la verificación final se actualizó al último parche de la línea que fijan los specs, `3.3.13` (correcciones de seguridad de Spring Framework 6.1.21 y Tomcat 10.1.42), y el plugin `org.sonarqube` a `7.5.0.8588`, la última versión publicada que pide el spec 05 §5.2.
 8. **Compatibilidad de Constructores con IDEs y Regla `S107`:**  
-   Para evitar inconsistencias en el compilador de Eclipse JDT en VS Code, se actualizaron dependencias de Lombok a `1.18.36`. Además, `java:S107` configuró `constructorMax = 7`, lo que permitió revertir constructores telescopios y mantener constructores limpios en las entidades sin violar el límite de parámetros.
-9. **Constructor Secundario de Compatibilidad en `TaskUrgencyEvaluator`:**  
-   Para cumplir la regla estricta de no modificar ningún archivo en `src/test/` durante el Commit B, `TaskUrgencyEvaluator` incorporó un constructor secundario que instancia internamente las 4 reglas, manteniendo 100% compatibles los tests preexistentes.
+   `Task` y los DTO conservan `@NoArgsConstructor`/`@AllArgsConstructor` de Lombok: escribir a mano el constructor de 9 parámetros de `Task` violaría `java:S107` (`constructorMax = 7`), mientras que el código generado por Lombok no se analiza. Los servicios mantienen constructores explícitos de inyección (≤ 6 parámetros), equivalentes a `@RequiredArgsConstructor`. Lombok dejó de fijarse en `1.18.36`: lo gestiona el BOM de Spring Boot (`1.18.38` con 3.3.13), como exige H-10.
+9. **Constructor Secundario de Compatibilidad en `TaskUrgencyEvaluator` (resuelto):**  
+   Durante el Commit B, `TaskUrgencyEvaluator` tuvo un constructor secundario que instanciaba internamente las 4 reglas para no modificar `src/test/`. Cerrado el caso de estudio, se eliminó: el evaluador depende solo de `List<UrgencyRule>` y los tests construyen la lista explícitamente; un test con `ApplicationContextRunner` verifica que Spring respeta el orden de `@Order`.
 
 ---
 
