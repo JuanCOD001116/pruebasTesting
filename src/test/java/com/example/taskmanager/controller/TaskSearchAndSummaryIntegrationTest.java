@@ -65,7 +65,9 @@ class TaskSearchAndSummaryIntegrationTest {
     @Test
     @DisplayName("Dado tareas existentes, cuando se consulta GET /api/tasks/summary, entonces retorna estadísticas correctas con tasa de completitud 36.36%")
     void shouldReturnSummaryWithCorrectStatisticsAndCompletionRate() throws Exception {
-        // Arrange & Act & Assert
+        // Arrange: 12 tareas sembradas en setUp()
+
+        // Act & Assert
         mockMvc.perform(get("/api/tasks/summary"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(12))
@@ -83,7 +85,9 @@ class TaskSearchAndSummaryIntegrationTest {
     @Test
     @DisplayName("Dado el endpoint /api/tasks/summary, cuando se consulta, entonces no colisiona con GET /api/tasks/{id}")
     void shouldNotConfuseSummaryEndpointWithGetById() throws Exception {
-        // Arrange & Act & Assert
+        // Arrange: 12 tareas sembradas en setUp()
+
+        // Act & Assert
         mockMvc.perform(get("/api/tasks/summary"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").exists());
@@ -92,7 +96,9 @@ class TaskSearchAndSummaryIntegrationTest {
     @Test
     @DisplayName("Dado parametros de paginacion y ordenamiento, cuando se consulta GET /api/tasks/search, entonces retorna PageResponse ordenado")
     void shouldSearchTasksWithPaginationAndSorting() throws Exception {
-        // Arrange & Act & Assert
+        // Arrange: 12 tareas sembradas en setUp()
+
+        // Act & Assert
         mockMvc.perform(get("/api/tasks/search")
                         .param("page", "0")
                         .param("size", "2")
@@ -110,7 +116,9 @@ class TaskSearchAndSummaryIntegrationTest {
     @Test
     @DisplayName("Dada una propiedad de ordenamiento no permitida, cuando se consulta GET /api/tasks/search, entonces retorna 400 Bad Request")
     void shouldRejectInvalidSortPropertyWith400() throws Exception {
-        // Arrange & Act & Assert
+        // Arrange: 12 tareas sembradas en setUp()
+
+        // Act & Assert
         mockMvc.perform(get("/api/tasks/search")
                         .param("sort", "password,asc"))
                 .andExpect(status().isBadRequest())
@@ -121,7 +129,9 @@ class TaskSearchAndSummaryIntegrationTest {
     @Test
     @DisplayName("Dado dueFrom mayor que dueTo, cuando se consulta GET /api/tasks/search, entonces retorna 400 por validación de rango")
     void shouldRejectInvalidDueRangeWith400() throws Exception {
-        // Arrange & Act & Assert
+        // Arrange: 12 tareas sembradas en setUp()
+
+        // Act & Assert
         mockMvc.perform(get("/api/tasks/search")
                         .param("dueFrom", "2026-12-31")
                         .param("dueTo", "2026-01-01"))

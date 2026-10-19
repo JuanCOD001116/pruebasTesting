@@ -65,7 +65,7 @@ class TaskControllerPerformanceTest {
     }
 
     @Test
-    @DisplayName("should create task within reasonable time")
+    @DisplayName("Dado un CreateTaskRequest válido, cuando se crea la tarea, entonces responde en menos de 200 ms")
     void shouldCreateTaskWithinTimeThreshold() {
         // Arrange
         when(taskService.createTask(any(CreateTaskRequest.class)))
@@ -81,7 +81,7 @@ class TaskControllerPerformanceTest {
     }
 
     @Test
-    @DisplayName("should get all tasks within reasonable time")
+    @DisplayName("Dado un servicio con tareas, cuando se listan las tareas, entonces responde en menos de 200 ms")
     void shouldGetAllTasksWithinTimeThreshold() {
         // Arrange
         when(taskService.findTasks(any()))

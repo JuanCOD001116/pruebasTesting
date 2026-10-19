@@ -26,7 +26,9 @@ class GlobalExceptionHandlerIntegrationTest {
     @Test
     @DisplayName("Dado un parámetro de tipo enum inválido en query, cuando se consulta GET /api/tasks?status=FOO, entonces responde 400 estandarizado")
     void shouldReturn400WhenMethodArgumentTypeMismatch() throws Exception {
-        // Arrange & Act & Assert
+        // Arrange: no requiere datos previos
+
+        // Act & Assert
         mockMvc.perform(get("/api/tasks")
                         .param("status", "INVALID_ENUM_VALUE"))
                 .andExpect(status().isBadRequest())
@@ -54,7 +56,9 @@ class GlobalExceptionHandlerIntegrationTest {
     @Test
     @DisplayName("Dado un ID que no existe, cuando se consulta GET /api/tasks/{id}, entonces responde 404 estandarizado")
     void shouldReturn404WhenTaskNotFound() throws Exception {
-        // Arrange & Act & Assert
+        // Arrange: no requiere datos previos
+
+        // Act & Assert
         mockMvc.perform(get("/api/tasks/{id}", 999999L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value(404))
@@ -65,7 +69,9 @@ class GlobalExceptionHandlerIntegrationTest {
     @Test
     @DisplayName("Dado un path variable inválido, cuando se consulta GET /api/tasks/{id} con texto, entonces responde 400 por type mismatch")
     void shouldReturn400WhenPathVariableTypeMismatch() throws Exception {
-        // Arrange & Act & Assert
+        // Arrange: no requiere datos previos
+
+        // Act & Assert
         mockMvc.perform(get("/api/tasks/not-a-number"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
