@@ -19,7 +19,9 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: gradle/actions/setup-gradle@v5   # v6 exige aceptar los Terms of Use de Gradle (cache propietario)
+      # Action de terceros fijada a SHA completo (githubactions:S7637). v6 exige aceptar los
+      # Terms of Use de Gradle (cache propietario), por eso se mantiene la linea v5.
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
 
       - name: Cache SonarCloud packages
         uses: actions/cache@v6
