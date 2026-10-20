@@ -129,3 +129,5 @@ Feature: Urgencia calculada de tareas (R9)
     And match response == '#[]'
     * def ids = karate.map(response, function(t){ return t.id })
     And match ids !contains taskId
+    # Con el reloj fijo y R7/R8 ninguna tarea creada en la ejecución puede estar vencida
+    And match response == []

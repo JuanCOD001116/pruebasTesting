@@ -30,8 +30,15 @@ Feature: Salud de la plataforma y documentación OpenAPI
     Given path 'v3', 'api-docs'
     When method get
     Then status 200
-    * def rawDocs = typeof response == 'string' ? response : JSON.stringify(response)
-    And match rawDocs contains '/api/tasks'
-    And match rawDocs contains '/api/tasks/search'
-    And match rawDocs contains '/api/tasks/summary'
-    And match rawDocs contains '/api/tasks/{id}/status'
+    # Claves exactas de "paths": un "contains" sobre el texto daría por bueno '/api/tasks'
+    # solo porque aparece como prefijo de las demás rutas
+    And match response.paths contains
+      """
+      {
+        '/api/tasks': '#object',
+        '/api/tasks/search': '#object',
+        '/api/tasks/summary': '#object',
+        '/api/tasks/{id}/status': '#object'
+      }
+      """
+    And match response.paths['/api/tasks/{id}/status'] contains { patch: '#object' }

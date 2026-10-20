@@ -20,6 +20,10 @@ Feature: Máquina de estados de una tarea
     And method patch
     Then status 200
     And match response.status == '<hacia>'
+    Given path id
+    When method get
+    Then status 200
+    And match response.status == '<hacia>'
 
     Examples:
       | desde       | hacia       | ruta                |
@@ -68,11 +72,18 @@ Feature: Máquina de estados de una tarea
     And match response == schemas.error
     And match response.code == 400
     And match response.message contains 'mismo estado'
+    Given path id
+    When method get
+    Then status 200
+    And match response.status == '<desde>'
 
+    # DONE y CANCELLED completan la matriz del spec 01 (TC-12 y TC-17): regla 3 antes que 1/2
     Examples:
-      | desde       | ruta           |
-      | PENDING     | []             |
-      | IN_PROGRESS | ['IN_PROGRESS']|
+      | desde       | ruta                    |
+      | PENDING     | []                      |
+      | IN_PROGRESS | ['IN_PROGRESS']         |
+      | DONE        | ['IN_PROGRESS', 'DONE'] |
+      | CANCELLED   | ['CANCELLED']           |
 
   @status
   Scenario: A-19 PENDING a IN_PROGRESS sin responsable falla con 400

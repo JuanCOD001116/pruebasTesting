@@ -49,6 +49,10 @@ Feature: Resumen estadístico de tareas (F3)
 
   @summary
   Scenario: A-48 completionRate es consistente con la fórmula DONE / (total - CANCELLED) * 100
+    # Datos propios: garantizan un denominador > 0 aunque el escenario corra solo
+    Given def finished = call createTask { priority: 'MEDIUM', assignedTo: 'sofia' }
+    And call changeStatus { id: '#(finished.task.id)', path: ['IN_PROGRESS', 'DONE'] }
+    And call createTask { priority: 'LOW' }
     Given path 'summary'
     When method get
     Then status 200
@@ -57,7 +61,10 @@ Feature: Resumen estadístico de tareas (F3)
     * def cancelled = response.byStatus.CANCELLED
     * def rate = response.completionRate
     And assert rate >= 0 && rate <= 100
+    # A lo sumo 2 decimales (BigDecimal con escala 2, HALF_UP)
+    And match ('' + rate) == '#regex \\d{1,3}(\\.\\d{1,2})?'
     * def denominator = total - cancelled
+    And assert denominator > 0
     * def expectedRate = denominator == 0 ? 0.0 : (Math.round((done / denominator) * 10000) / 100)
     And assert Math.abs(rate - expectedRate) < 0.02
 
