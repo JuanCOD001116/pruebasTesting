@@ -30,8 +30,36 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      - name: Build, test, coverage and analyze
+      - name: Build, unit & integration tests
+        run: ./gradlew clean build -x acceptanceTest
+
+      - name: Acceptance tests (Karate)
+        run: ./gradlew acceptanceTest
+
+      - name: Publish Karate summary
+        if: always()
+        run: |
+          if [ -f build/karate-reports/karate-summary-json.txt ]; then
+            echo "## Pruebas de aceptación (Karate)" >> "$GITHUB_STEP_SUMMARY"
+            python3 - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          d = json.load(open('build/karate-reports/karate-summary-json.txt'))
+          print(f"| Features | Escenarios | Pasaron | Fallaron |")
+          print(f"|---|---|---|---|")
+          print(f"| {d.get('featuresPassed',0)+d.get('featuresFailed',0)} | {d.get('scenariosPassed',0)+d.get('scenariosfailed',0)} | {d.get('scenariosPassed',0)} | {d.get('scenariosfailed',0)} |")
+          EOF
+          fi
+
+      - name: Upload Karate reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: karate-reports
+          path: build/karate-reports/
+          retention-days: 14
+
+      - name: SonarCloud analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew clean build sonar --info
+        run: ./gradlew sonar --info
