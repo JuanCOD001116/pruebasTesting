@@ -247,7 +247,7 @@ Final: `./gradlew clean build` sobre el último commit de esta rama.
 | Casos de Karate | 86 / 0 fallos | 86 / 0 fallos |
 | Cobertura JaCoCo (instr. / ramas / líneas) | 99.9 % / 98.0 % / 99.7 % | 99.9 % / 98.0 % / 99.7 % |
 | Máx. V(G) por método | 7 | 7 |
-| Quality Gate de `main` / issues abiertos | OK / 0 | PR: ver §Parte 3 |
+| Quality Gate de `main` / issues abiertos | OK / 0 | **OK (Passed) en el PR #5** / 0 issues nuevos |
 
 ### Parte 1 — Pendientes de limpieza
 
@@ -285,5 +285,12 @@ Todos los ítems de V-05 a V-STYLE se verificaron en la pasada del PR #3 (detall
 
 ### Parte 3 — Cierre
 
-- `gradlew.bat clean build` completo al final: ver la sección siguiente.
-- PR hacia `main`: Quality Gate y checks (se completan tras el análisis del PR).
+- `gradlew.bat clean build` completo al final: **BUILD SUCCESSFUL** (168 pruebas y 86 casos de Karate, 0 fallos; cobertura 99.9 % / 98.0 % / 99.7 %; `build/libs/task-manager-api.jar`).
+- **PR #5** hacia `main` (https://github.com/JuanCOD001116/pruebasTesting/pull/5): checks `build-and-analyze`, `SonarCloud Code Analysis` y `SonarCloud` en verde. **TaskManager Gate: OK (Passed)**: `new_violations` 0, ratings de confiabilidad, seguridad y mantenibilidad en A, duplicación 0.0 %, hotspots 100 % revisados. Cobertura de los archivos del PR: 99.2 %.
+
+### Pendientes para el usuario
+
+1. Hacer **merge del PR #5** y confirmar que el análisis de `main` queda en OK (por ejemplo, ejecutando `verificar-todo.bat -Rapido`, que muestra el gate de `main`).
+2. Capturas de evidencia: `docs/analisis-estatico/evidencias/` (11) y `docs/pruebas-aceptacion/evidencias/` (8).
+3. Si el IDE vuelve a mostrar falsos positivos de Lombok: configurar `java.jdt.ls.java.home` en el `settings.json` de usuario (README → "Configurar el JDK del IDE").
+4. Opcional: decidir si se aceptan los *Terms of Use* de Gradle para pasar `setup-gradle` a v6.

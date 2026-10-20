@@ -223,7 +223,7 @@ final: 99.9 % de instrucciones y 97.8 % de ramas (164 pruebas).
 | Casos de aceptación (Karate) | — | 86 | 86 | Capa nueva del spec 13; no aporta cobertura a Sonar. |
 | Cobertura JaCoCo instr. / ramas | 99.9 % / 97.8 % | 99.9 % / 98.0 % | 99.9 % / 98.0 % | Ramas 92 → 98: las 6 nuevas de `toOrder` (ternario) y `sortKey` (`if` + `for`), todas cubiertas. |
 | Instrucciones medidas por JaCoCo | 1 417 | 1 510 | 1 444 | Los 7 constructores de inyección vuelven a ser de Lombok (`e0ebf4d`) y JaCoCo excluye el código `@Generated`; el porcentaje no cambia. |
-| Complejidad ciclomática total (Sonar, `main`) | 142 | 151 | ≈ 144 (se confirma en el análisis del PR) | +9 por el ordenamiento nuevo (`orderedBy`, `toOrder`, `sortKey`) del PR #4; −7 al eliminar los 7 constructores escritos a mano (cada uno suma 1 en Sonar). |
+| Complejidad ciclomática total (Sonar, `main`) | 142 | 151 | ≈ 144 (el análisis de un PR solo mide los archivos cambiados; el total se confirma en `main` tras el merge) | +9 por el ordenamiento nuevo (`orderedBy`, `toOrder`, `sortKey`) del PR #4; −7 al eliminar los 7 constructores escritos a mano (cada uno suma 1 en Sonar). |
 | Máx. V(G) por método | 7 | 7 | 7 | Sin cambios (`TaskStatusTransitionValidator.validate`). |
 
 ---
