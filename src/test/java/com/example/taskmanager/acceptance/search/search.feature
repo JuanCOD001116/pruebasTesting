@@ -103,15 +103,13 @@ Feature: Búsqueda paginada, filtros combinables y ordenamiento (F2)
     And def cMed = call createTask { title: '#(prefix + " MED")', priority: 'MEDIUM', dueDate: '#(dMed)' }
     And def cHigh = call createTask { title: '#(prefix + " HIGH")', priority: 'HIGH', dueDate: '#(dHigh)' }
 
-    # 1. Orden por prioridad desc (orden alfabético en BD para EnumType.STRING: MEDIUM -> LOW -> HIGH)
+    # 1. Orden por prioridad desc: HIGH -> MEDIUM -> LOW (orden de negocio, no alfabético)
     Given url apiUrl + '/search'
     And params { text: '#(prefix)', sort: 'priority,desc' }
     When method get
     Then status 200
     And match response.content == '#[3]'
-    And match response.content[0].priority == 'MEDIUM'
-    And match response.content[1].priority == 'LOW'
-    And match response.content[2].priority == 'HIGH'
+    And match response.content[*].priority == ['HIGH', 'MEDIUM', 'LOW']
 
     # 2. Orden por dueDate asc (dMed +5 -> dLow +10 -> dHigh +15)
     Given url apiUrl + '/search'
