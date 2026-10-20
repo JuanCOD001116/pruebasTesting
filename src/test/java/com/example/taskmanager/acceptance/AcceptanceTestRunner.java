@@ -25,24 +25,16 @@ class AcceptanceTestRunner {
     @DisplayName("Dado la API en ejecución, cuando se ejecutan los escenarios de aceptación, entonces todos pasan")
     void allAcceptanceScenariosPass() {
         // Arrange
-        System.setProperty("karate.config.dir", "src/test/java/com/example/taskmanager/acceptance");
-        String karateOptions = System.getProperty("karate.options");
+        // -Dkarate.options (e.g. "--tags @smoke") is read by Karate itself and overrides these tags
         Runner.Builder<?> builder = Runner.path("classpath:com/example/taskmanager/acceptance")
+                .configDir("classpath:com/example/taskmanager/acceptance")
                 .tags("~@ignore")
-                .systemProperty("karate.config.dir", "src/test/java/com/example/taskmanager/acceptance")
                 .systemProperty("karate.port", String.valueOf(port))
                 .systemProperty("karate.today", FixedClockTestConfig.TODAY.toString())
                 .outputHtmlReport(true)
                 .outputJunitXml(true)
                 .outputCucumberJson(true)
                 .reportDir("build/karate-reports");
-
-        if (karateOptions != null && !karateOptions.isBlank()) {
-            String tagOption = karateOptions.startsWith("--tags ")
-                    ? karateOptions.substring(7).trim()
-                    : karateOptions.trim();
-            builder.tags("~@ignore", tagOption);
-        }
 
         // Act
         Results results = builder.parallel(1);

@@ -1,6 +1,7 @@
 function fn() {
   var port = karate.properties['karate.port'] || '8080';
-  var today = karate.properties['karate.today'] || '2030-01-15';
+  // Set by AcceptanceTestRunner from FixedClockTestConfig.TODAY (single source of truth)
+  var today = karate.properties['karate.today'];
   var LocalDate = Java.type('java.time.LocalDate');
   var base = LocalDate.parse(today);
 
