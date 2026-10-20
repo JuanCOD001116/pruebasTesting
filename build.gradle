@@ -49,6 +49,16 @@ dependencies {
 	// Testing
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testImplementation 'io.karatelabs:karate-junit5:1.5.1'
+}
+
+sourceSets {
+	test {
+		resources {
+			srcDir 'src/test/java'
+			exclude '**/*.java'
+		}
+	}
 }
 
 tasks.named('jar') {
@@ -59,9 +69,28 @@ tasks.named('bootJar') {
 	archiveFileName = 'task-manager-api.jar'
 }
 
-tasks.named('test') {
-	useJUnitPlatform()
+tasks.named('test', Test) {
+	useJUnitPlatform {
+		excludeTags 'acceptance'
+	}
 	finalizedBy jacocoTestReport
+}
+
+tasks.register('acceptanceTest', Test) {
+	description = 'Pruebas de aceptación end-to-end con Karate.'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform {
+		includeTags 'acceptance'
+	}
+	shouldRunAfter tasks.named('test')
+	systemProperty 'karate.options', System.getProperty('karate.options', '')
+	outputs.dir(layout.buildDirectory.dir('karate-reports'))
+	testLogging {
+		events 'failed'
+		exceptionFormat 'full'
+	}
 }
 
 jacoco {
@@ -110,6 +139,10 @@ jacocoTestCoverageVerification {
 }
 
 check.dependsOn jacocoTestCoverageVerification
+
+tasks.named('check') {
+	dependsOn tasks.named('acceptanceTest')
+}
 
 sonar {
 	properties {

@@ -1,0 +1,43 @@
+{
+  "task": {
+    "id": "#number",
+    "title": "#string",
+    "description": "##string",
+    "status": "#regex ^(PENDING|IN_PROGRESS|DONE|CANCELLED)$",
+    "priority": "#regex ^(LOW|MEDIUM|HIGH)$",
+    "assignedTo": "##string",
+    "dueDate": "##regex ^\\d{4}-\\d{2}-\\d{2}$",
+    "urgency": "#regex ^(NONE|ON_TRACK|AT_RISK|OVERDUE)$",
+    "createdAt": "#string",
+    "updatedAt": "#string"
+  },
+  "error": {
+    "code": "#number",
+    "message": "#string",
+    "timestamp": "#string",
+    "path": "#string"
+  },
+  "page": {
+    "content": "#array",
+    "page": "#number",
+    "size": "#number",
+    "totalElements": "#number",
+    "totalPages": "#number"
+  },
+  "summary": {
+    "total": "#number",
+    "byStatus": {
+      "PENDING": "#number",
+      "IN_PROGRESS": "#number",
+      "DONE": "#number",
+      "CANCELLED": "#number"
+    },
+    "byPriority": {
+      "LOW": "#number",
+      "MEDIUM": "#number",
+      "HIGH": "#number"
+    },
+    "overdue": "#number",
+    "completionRate": "#number"
+  }
+}

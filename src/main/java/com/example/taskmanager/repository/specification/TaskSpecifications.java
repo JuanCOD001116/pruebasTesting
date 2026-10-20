@@ -4,6 +4,12 @@ import com.example.taskmanager.dto.request.TaskSearchCriteria;
 import com.example.taskmanager.model.Task;
 import com.example.taskmanager.model.TaskPriority;
 import com.example.taskmanager.model.TaskStatus;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Order;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Root;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
@@ -20,6 +26,36 @@ public final class TaskSpecifications {
 
     private TaskSpecifications() {
         // Utility class
+    }
+
+    /**
+     * Applies the requested sort inside the query. Enum attributes are ordered by their declared
+     * position (LOW &lt; MEDIUM &lt; HIGH, PENDING &rarr; CANCELLED) instead of by the stored text,
+     * which would sort them alphabetically.
+     */
+    public static Specification<Task> orderedBy(Sort sort) {
+        return (root, query, cb) -> {
+            query.orderBy(sort.stream().map(order -> toOrder(root, cb, order)).toList());
+            return null;
+        };
+    }
+
+    private static Order toOrder(Root<Task> root, CriteriaBuilder cb, Sort.Order order) {
+        Expression<?> key = sortKey(root, cb, order.getProperty());
+        return order.isAscending() ? cb.asc(key) : cb.desc(key);
+    }
+
+    private static Expression<?> sortKey(Root<Task> root, CriteriaBuilder cb, String property) {
+        Path<Object> path = root.get(property);
+        Object[] constants = path.getJavaType().getEnumConstants();
+        if (constants == null) {
+            return path;
+        }
+        CriteriaBuilder.SimpleCase<Object, Integer> rank = cb.selectCase(path);
+        for (Object constant : constants) {
+            rank = rank.when(constant, ((Enum<?>) constant).ordinal());
+        }
+        return rank.otherwise(constants.length);
     }
 
     public static Specification<Task> hasStatus(TaskStatus status) {
