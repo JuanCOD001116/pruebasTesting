@@ -141,18 +141,19 @@ function Test-Requisitos {
         Write-Fallo "No estas en la raiz del repositorio (faltan: $($faltan -join ', '))."
         return $false
     }
-    Write-Ok "Raiz del repositorio: $Raiz"
+    # Solo el nombre de la carpeta: el resumen no depende de donde este clonado el repo
+    Write-Ok "Raiz del repositorio: $(Split-Path -Leaf $Raiz)"
 
     $javaExe = $null
     $origen = ''
     if ($env:JAVA_HOME -and (Test-Path (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
         $javaExe = Join-Path $env:JAVA_HOME 'bin\java.exe'
-        $origen = "JAVA_HOME ($env:JAVA_HOME)"
+        $origen = 'JAVA_HOME'
     } else {
         $cmd = Get-Command java.exe -ErrorAction SilentlyContinue
         if ($cmd) {
             $javaExe = $cmd.Source
-            $origen = "PATH ($javaExe)"
+            $origen = 'PATH'
         }
     }
     if (-not $javaExe) {
@@ -367,7 +368,7 @@ function Save-Resumen {
     $contenido = $cabecera + $script:Resumen
     [System.IO.File]::WriteAllLines($archivo, [string[]]$contenido, (New-Object System.Text.UTF8Encoding $true))
     Write-Host ''
-    Write-Host "Resumen guardado en: $archivo" -ForegroundColor Cyan
+    Write-Host 'Resumen guardado en: build\verificacion\resumen-verificacion.txt' -ForegroundColor Cyan
 }
 
 # ---------------------------------------------------------------- programa principal
