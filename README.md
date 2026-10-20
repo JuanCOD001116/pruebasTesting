@@ -300,6 +300,11 @@ El script **nunca** ejecuta el análisis de SonarCloud ni pide o guarda tokens. 
 Windows PowerShell 5.1 que viene con Windows; la lógica está en `scripts/verificar-todo.ps1`. El
 código de salida es 0 si todo pasó y 1 si algo falló.
 
+No usa rutas fijas: la raíz del repo se calcula desde la ubicación del propio script, los reportes
+se buscan bajo `build\` y Java se toma de `JAVA_HOME` o del `PATH`. Sirve en cualquier PC con
+Windows y un JDK 17+, en cualquier carpeta (también con espacios en el nombre) y aunque se lance
+desde otro directorio, por ejemplo `C:\otra\carpeta> D:\proyectos\pruebasTesting\verificar-todo.bat`.
+
 ## Análisis estático y cobertura de código
 
 ### Reporte de cobertura JaCoCo
