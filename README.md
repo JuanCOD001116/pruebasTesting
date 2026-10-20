@@ -43,12 +43,17 @@ pruebasTesting/
 ├── .vscode/
 │   └── settings.json                  # Ajustes portables del IDE (sin rutas locales)
 ├── docs/
-│   └── analisis-estatico/
-│       ├── informe-metricas.md        # Métricas antes/después (complejidad, cobertura)
-│       ├── reporte-verificacion.md    # Reporte de verificación final (spec 12)
-│       └── evidencias/                # Capturas de SonarCloud y JaCoCo
+│   ├── analisis-estatico/
+│   │   ├── informe-metricas.md        # Métricas antes/después (complejidad, cobertura)
+│   │   ├── reporte-verificacion.md    # Reporte de verificación final (specs 12 y 13)
+│   │   └── evidencias/                # Capturas de SonarCloud y JaCoCo
+│   └── pruebas-aceptacion/
+│       ├── resumen.md                 # Resultados de Karate (spec 13)
+│       └── evidencias/                # Capturas de los reportes de Karate y del pipeline
 ├── gradle/
 │   └── gradle-daemon-jvm.properties   # Fija el daemon de Gradle en JDK 17
+├── scripts/
+│   └── verificar-todo.ps1             # Lógica de la verificación en un solo paso
 ├── quality/
 │   └── sonar/
 │       ├── quality-gate.md            # Definición documentada del Quality Gate
@@ -95,7 +100,9 @@ pruebasTesting/
 │   │           ├── V1__Create_tasks_table.sql
 │   │           └── V2__Add_due_date_to_tasks.sql
 │   └── test/
-│       └── java/com/example/taskmanager/      # 23 clases de prueba, mismo paquete que lo probado
+│       └── java/com/example/taskmanager/      # 24 clases de prueba, mismo paquete que lo probado
+│           ├── acceptance/                    # Karate: runner, reloj fijo, karate-config.js
+│           │                                  # y 9 features (54 escenarios, 86 casos)
 │           ├── controller/                    # MockMvc, unitarios y de rendimiento
 │           ├── dto/                           # TaskSearchCriteria y @NullOrNotBlank
 │           ├── exception/                     # Handler: unitario e integración
@@ -109,7 +116,8 @@ pruebasTesting/
 ├── Dockerfile                         # Multi-stage build con usuario app
 ├── docker-compose.yml
 ├── .env.example
-├── .gitattributes                     # gradlew con LF para que docker build funcione desde Windows
+├── .gitattributes                     # gradlew con LF (Docker) y el .bat con CRLF (cmd.exe)
+├── verificar-todo.bat                 # Verificación en un solo paso (doble clic)
 └── README.md
 ```
 
@@ -168,14 +176,23 @@ con el mismo cuerpo de error estandarizado (`code`, `message`, `timestamp`, `pat
 - Java 17 (JDK). Gradle usa un JDK 17 instalado para su daemon (`gradle/gradle-daemon-jvm.properties`) aunque `JAVA_HOME` apunte a una versión más nueva.
 - Docker y Docker Compose (para ejecución en contenedores)
 
-> **VS Code / Antigravity:** `.vscode/settings.json` solo contiene ajustes portables. Si tu IDE
-> arranca el Java Language Server con un JDK muy nuevo (p. ej. 27) y muestra falsos positivos con
-> Lombok, fija el JDK del language server en tu `settings.json` **de usuario** (no en el del
-> proyecto), con la ruta de tu máquina:
->
-> ```json
-> "java.jdt.ls.java.home": "C:\\Program Files\\Java\\jdk-21"
-> ```
+### Configurar el JDK del IDE (VS Code / Antigravity)
+
+`.vscode/settings.json` solo versiona ajustes portables: **no** contiene rutas de ninguna máquina,
+porque una ruta que no existe impide que arranque el Java Language Server en otro equipo. Si tu IDE
+arranca el language server con un JDK muy nuevo (p. ej. 27) y marca falsos positivos con Lombok
+(como "Flexible Constructor Bodies"), configura el JDK en tu `settings.json` **de usuario**
+(*Ctrl+Shift+P → Preferences: Open User Settings (JSON)*), con la ruta de **tu** instalación:
+
+```json
+"java.jdt.ls.java.home": "C:\\Program Files\\Java\\jdk-21",
+"java.configuration.runtimes": [
+  { "name": "JavaSE-17", "path": "C:\\Program Files\\Java\\jdk-17", "default": true }
+]
+```
+
+Después ejecuta *Java: Clean Java Language Server Workspace*. Gradle no depende de esto: compila
+siempre con el toolchain 17 de `build.gradle`.
 
 ### Desarrollo local (H2 en memoria)
 
@@ -214,10 +231,11 @@ docker compose down -v
 
 ## Pruebas automatizadas
 
-El proyecto cuenta con **164 pruebas en 23 clases** (unitarias, de integración con MockMvc/H2,
+El proyecto cuenta con **168 pruebas en 24 clases** (unitarias, de integración con MockMvc/H2,
 `@DataJpaTest` y de rendimiento), todas con el patrón **AAA (Arrange-Act-Assert)** y
 `@DisplayName` en estilo Dado/cuando/entonces. Son independientes entre sí: pasan ejecutadas por
-clase y en orden aleatorio.
+clase y en orden aleatorio. Además hay **54 escenarios de aceptación con Karate (86 casos)** que
+se ejecutan con peticiones HTTP reales contra la aplicación levantada (ver más abajo).
 
 ```bash
 # Ejecutar todos los tests y generar reporte de cobertura
@@ -235,6 +253,57 @@ clase y en orden aleatorio.
 # Ejecutar pruebas de rendimiento
 ./gradlew test --tests "*TaskControllerPerformanceTest"
 ```
+
+### Pruebas de aceptación (Karate)
+
+`./gradlew test` **no** ejecuta Karate; tiene su propia tarea, `acceptanceTest`, que levanta la
+aplicación en un puerto aleatorio con H2 y Flyway, con el reloj fijo en `2030-01-15`.
+
+```bash
+./gradlew acceptanceTest                                  # todos los escenarios
+./gradlew acceptanceTest -Dkarate.options="--tags @smoke"  # solo un grupo por tag
+./gradlew clean build                                     # check incluye acceptanceTest
+```
+
+Reporte: `build/karate-reports/karate-summary.html`. Detalle y decisiones en
+`docs/pruebas-aceptacion/resumen.md`. La cobertura de Karate **no** se envía a SonarCloud.
+
+## Verificación en un solo paso
+
+`verificar-todo.bat` (en la raíz) ejecuta toda la verificación y muestra un resumen en español.
+Se puede abrir con doble clic o desde `cmd`:
+
+```bat
+verificar-todo.bat                 :: todo: pruebas + cobertura + Karate + SonarCloud
+verificar-todo.bat -Rapido         :: solo pruebas unitarias/integración (sin Karate)
+verificar-todo.bat -SoloKarate     :: solo pruebas de aceptación
+verificar-todo.bat -SinNavegador   :: no abre los reportes (combinable con las otras)
+```
+
+Qué hace, en orden:
+
+1. **Requisitos:** comprueba que está en la raíz del repo y que hay un JDK 17+ (avisa si
+   `JAVA_HOME` apunta a una versión que Gradle 8.12 no soporta); muestra la rama y el último commit
+   y avisa si hay cambios sin commitear.
+2. **Etapas:** `clean test jacocoTestReport jacocoTestCoverageVerification` y luego
+   `acceptanceTest`, cada una con su resultado y duración. Si una falla, sigue con la siguiente.
+3. **Resumen:** pruebas (total, pasadas, fallidas, omitidas), cobertura JaCoCo (instrucciones,
+   ramas, líneas, métodos), top 5 de complejidad ciclomática (avisa si alguno supera 10), Karate
+   (features, escenarios y tiempo) y el estado de `main` en SonarCloud (Quality Gate, cobertura,
+   issues, bugs, vulnerabilidades, complejidad). SonarCloud se consulta por la API pública, sin
+   token; si no hay internet solo muestra un aviso. Termina con **TODO OK** o la lista de fallos.
+4. **Reportes:** abre en el navegador los HTML de pruebas, JaCoCo y Karate que existan y el
+   dashboard de SonarCloud.
+5. **Archivo:** guarda el resumen con fecha y hora en `build/verificacion/resumen-verificacion.txt`.
+
+El script **nunca** ejecuta el análisis de SonarCloud ni pide o guarda tokens. Funciona con el
+Windows PowerShell 5.1 que viene con Windows; la lógica está en `scripts/verificar-todo.ps1`. El
+código de salida es 0 si todo pasó y 1 si algo falló.
+
+No usa rutas fijas: la raíz del repo se calcula desde la ubicación del propio script, los reportes
+se buscan bajo `build\` y Java se toma de `JAVA_HOME` o del `PATH`. Sirve en cualquier PC con
+Windows y un JDK 17+, en cualquier carpeta (también con espacios en el nombre) y aunque se lance
+desde otro directorio, por ejemplo `C:\otra\carpeta> D:\proyectos\pruebasTesting\verificar-todo.bat`.
 
 ## Análisis estático y cobertura de código
 

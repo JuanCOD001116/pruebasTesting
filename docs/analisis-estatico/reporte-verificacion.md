@@ -230,5 +230,67 @@ Final: `./gradlew clean build` sobre el último commit de esta rama.
 
 ### Pendientes manuales (Karate)
 
-1. Revisar los commits de verificación y hacer **push** de `test/karate-acceptance`; el spec 13 §12.7 indica que el push lo hace el usuario. Luego abrir el PR y confirmar en *Checks* que el paso *Acceptance tests (Karate)* y el Quality Gate quedan en verde.
+1. ~~Push de `test/karate-acceptance` y PR~~: hecho (PR #4, mergeado en `b7786e1`).
 2. Capturas de `docs/pruebas-aceptacion/evidencias/` (§11, 01–08): se toman desde el navegador y desde GitHub Actions.
+
+---
+
+## Cierre final del proyecto
+
+> **Fecha:** 2026-10-20 · **Rama:** `chore/verificacion-final`, recreada desde `main` (`b7786e1`, ya incluye el PR #4). La rama anterior del mismo nombre (PR #3) estaba completamente contenida en `main`, así que el push es fast-forward y no se reescribe historial. `fbc0df1` y `b31c43a` siguen intactos (`git merge-base --is-ancestor`).
+
+### Línea base del cierre (`main`, `b7786e1`) vs. final
+
+| Métrica | Línea base | Final |
+|---|---|---|
+| Pruebas unitarias/integración | 168 / 0 fallos | 168 / 0 fallos |
+| Casos de Karate | 86 / 0 fallos | 86 / 0 fallos |
+| Cobertura JaCoCo (instr. / ramas / líneas) | 99.9 % / 98.0 % / 99.7 % | 99.9 % / 98.0 % / 99.7 % |
+| Máx. V(G) por método | 7 | 7 |
+| Quality Gate de `main` / issues abiertos | OK / 0 | **OK (Passed) en el PR #5** / 0 issues nuevos |
+
+### Parte 1 — Pendientes de limpieza
+
+| Ítem | Estado | Evidencia y decisión | Commit |
+|---|---|---|---|
+| 1. Constructor secundario de `TaskUrgencyEvaluator` | ✅ (ya resuelto) | En `main` solo existe `TaskUrgencyEvaluator(List<UrgencyRule>, Clock)`. Los tests construyen la lista en el orden de `@Order` (Terminal 1 → NoDueDate 2 → Overdue 3 → DueSoon 4) y un test con `ApplicationContextRunner` verifica el orden real de Spring. Se eliminó en el PR #3. | `6a51096` |
+| 2. Plugin `org.sonarqube` | ✅ (ya resuelto) | En 7.5.0.8588, que sigue siendo la última versión publicada en el Gradle Plugin Portal (consultado hoy). Compatible con Gradle 8.12: `sonar --dry-run` resuelve y el análisis de CI funciona. | `ab32624` |
+| 3. GitHub Actions | ✅ (ya resuelto) | Versiones mayores vigentes consultadas hoy: `checkout@v7`, `setup-java@v6`, `cache@v6` y `upload-artifact@v7` (**existe**: v7.0.2, node24). `setup-gradle` sigue en **v5.0.2** fijado por SHA: corre en Node 24 (sin aviso de Node 20), y la v6 obliga a aceptar los *Terms of Use* de Gradle por su caché propietario, una decisión del dueño del repo. | `8f38c79`, `9e2f21d`, `5ba49f9` |
+| 4. Spring Boot | ✅ (decidido) | El proyecto **no** está en 3.4.x: `build.gradle` declara **3.3.13** y nunca declaró 3.4 (`git log -G` sobre todo el historial). Se mantiene la línea **3.3**, la que fijan los specs 04 y 08 (H-10, springdoc 2.6.x), en su último parche. Subir a 3.4/3.5 sería un cambio de stack que ningún spec pide. Nota: el soporte OSS de 3.3 terminó; migrar es una decisión aparte. | `5c72be5` |
+| 5. Constructores escritos a mano vs. Lombok | 🔧 | **Se vuelve a `@RequiredArgsConstructor`** en los 7 componentes inyectados. Motivos: (a) el falso positivo del IDE que motivó `3a0a002` también afectaría a `Task` y a los DTO, que ya usan constructores de Lombok desde `80a2fb8`, así que se resuelve por configuración del IDE y no por código; (b) es la convención del proyecto y del spec 09 §3.4; (c) `java:S107` no aplica al código generado, y el mayor tiene 6 dependencias (≤ `constructorMax` 7). Los tests no cambian (el orden de los campos coincide con el de los constructores anteriores): 168 + 86 en verde y la misma cobertura en %. | `e0ebf4d` |
+| 6. `.vscode/settings.json` sin rutas personales | ✅ + ⬆️ | No contiene rutas (`git grep` de rutas absolutas: 0). Alternativa aplicada: solo ajustes portables en el workspace y el JDK del IDE en el `settings.json` de **usuario**. El README tiene ahora una sección propia, "Configurar el JDK del IDE", con el JSON y los pasos. | `605b5b4`, `562991a` |
+| 7. Spec 12 §3 completo | ✅ | Ver la tabla siguiente. | — |
+
+### Ítem 7 — Confirmación de la sección 3 del spec 12
+
+Todos los ítems de V-05 a V-STYLE se verificaron en la pasada del PR #3 (detalle arriba). Para el cierre se repitieron las comprobaciones automatizables sobre el código actual:
+
+| Grupo | Comprobación (hoy) | Resultado |
+|---|---|---|
+| V-05 | Token en el repo (`sonar.token`, `squ_`, `sqp_`); `sonar` → `jacocoTestReport`; exclusiones JaCoCo = Sonar; 3 reportes generados; 0 métodos `builder` en el XML | ✅ |
+| V-06/07 | Perfil `TaskManager Java Way` (321 reglas) asignado; gate `TaskManager Gate` asignado y en OK en `main`; hotspots por revisar: 0 | ✅ |
+| V-08 | H-01 JAR único `task-manager-api.jar`; H-02 sin `application.properties`; H-03 sin `dialect`; H-07 sin `Collectors.toList()` ni `getTitle()` en logs; H-14 sin contraseñas por defecto | ✅ |
+| V-09 | Ningún `LocalDate(Time).now()` sin `Clock` en `src/main`; V1 no modificada; sin `findAll` en el resumen; Karate cubre F1–F3 de punta a punta | ✅ |
+| V-10/11 | Máx. V(G) por método = 7; issues `S3776`/`S1541` abiertos = 0; `fbc0df1` y `b31c43a` en el historial y `b31c43a` sin cambios en `src/test` | ✅ |
+| V-TEST | 116 tests anotados, todos con AAA y `@DisplayName`; suite completa en orden aleatorio (clases y métodos) en verde; la clase nueva `TaskSearchSortingIntegrationTest` pasa ejecutada sola | ✅ |
+| V-STYLE | Wildcard imports, `@Autowired` en `src/main`, `System.out`, `printStackTrace`, `@Data` en `model`, `TODO/FIXME`, `@SuppressWarnings`/`NOSONAR`/`@Disabled`, `@ignore` fuera de helpers, líneas > 100 en `src/main`: todos 0 | ✅ |
+
+### Parte 2 — Verificación en un solo paso
+
+| Entregable | Estado | Detalle | Commit |
+|---|---|---|---|
+| `verificar-todo.bat` + `scripts/verificar-todo.ps1` | ❌→✅ | Requisitos (raíz, JDK 17+ con aviso si `JAVA_HOME` no es soportado por Gradle 8.12, rama, último commit, cambios sin commitear) → etapas de Gradle con resultado y duración, continuando aunque una falle → resumen (pruebas, cobertura, top 5 de complejidad, Karate, SonarCloud por API pública) → veredicto → reportes en el navegador → `build/verificacion/resumen-verificacion.txt`. Opciones `-Rapido`, `-SoloKarate`, `-SinNavegador`. Nunca ejecuta `sonar` ni usa tokens. El `.bat` tiene CRLF forzado en `.gitattributes`. | `1dcb89e` |
+| Pruebas del script (Windows PowerShell 5.1.26100) | ✅ | Completo vía `.bat`: TODO OK, 2 etapas OK, 5 reportes abiertos. `-Rapido -SinNavegador`: TODO OK. `-SoloKarate -SinNavegador`: TODO OK. `-Rapido -SoloKarate`: rechazado (código 2). Con un test roto a propósito: etapa 1 en FALLO, Karate se ejecuta igual, veredicto con 3 fallos y código 1 (test revertido). | — |
+| README "Verificación en un solo paso" | ✅ | Uso, opciones y qué hace cada paso. | `562991a` |
+
+### Parte 3 — Cierre
+
+- `gradlew.bat clean build` completo al final: **BUILD SUCCESSFUL** (168 pruebas y 86 casos de Karate, 0 fallos; cobertura 99.9 % / 98.0 % / 99.7 %; `build/libs/task-manager-api.jar`).
+- **PR #5** hacia `main` (https://github.com/JuanCOD001116/pruebasTesting/pull/5): checks `build-and-analyze`, `SonarCloud Code Analysis` y `SonarCloud` en verde. **TaskManager Gate: OK (Passed)**: `new_violations` 0, ratings de confiabilidad, seguridad y mantenibilidad en A, duplicación 0.0 %, hotspots 100 % revisados. Cobertura de los archivos del PR: 99.2 %.
+
+### Pendientes para el usuario
+
+1. Hacer **merge del PR #5** y confirmar que el análisis de `main` queda en OK (por ejemplo, ejecutando `verificar-todo.bat -Rapido`, que muestra el gate de `main`).
+2. Capturas de evidencia: `docs/analisis-estatico/evidencias/` (11) y `docs/pruebas-aceptacion/evidencias/` (8).
+3. Si el IDE vuelve a mostrar falsos positivos de Lombok: configurar `java.jdt.ls.java.home` en el `settings.json` de usuario (README → "Configurar el JDK del IDE").
+4. Opcional: decidir si se aceptan los *Terms of Use* de Gradle para pasar `setup-gradle` a v6.

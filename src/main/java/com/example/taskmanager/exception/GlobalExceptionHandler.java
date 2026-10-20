@@ -2,6 +2,7 @@ package com.example.taskmanager.exception;
 
 import com.example.taskmanager.dto.response.ErrorResponse;
 import jakarta.servlet.ServletException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,15 +22,12 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 @Slf4j
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
     private static final String INVALID_PARAMETER_MESSAGE = "Parámetro inválido '%s': valor '%s'";
 
     private final Clock clock;
-
-    public GlobalExceptionHandler(Clock clock) {
-        this.clock = clock;
-    }
 
     @ExceptionHandler(TaskNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleTaskNotFoundException(
