@@ -6,5 +6,5 @@ Feature: Paso individual para cambio de estado
     Given url apiUrl + '/' + __arg.id + '/status'
     And request { status: '#(__arg.status)' }
     When method patch
-    Then status expected
+    Then match responseStatus == expected
     * def result = response
