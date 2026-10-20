@@ -19,6 +19,7 @@ import com.example.taskmanager.service.validation.TaskDueDateValidator;
 import com.example.taskmanager.service.validation.TaskStatusTransitionValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -90,8 +91,11 @@ public class TaskServiceImpl implements TaskService {
         log.debug("Searching tasks with criteria: {} and pageable: {}", criteria, pageable);
         sortValidator.validate(pageable.getSort());
         LocalDate today = LocalDate.now(clock);
-        Specification<Task> spec = TaskSpecifications.from(criteria, today);
-        Page<Task> page = taskRepository.findAll(spec, pageable);
+        // The sort is applied by the specification so enums follow their business order
+        Specification<Task> spec = TaskSpecifications.from(criteria, today)
+                .and(TaskSpecifications.orderedBy(pageable.getSort()));
+        Pageable unsortedPage = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+        Page<Task> page = taskRepository.findAll(spec, unsortedPage);
         return PageResponse.from(page.map(this::toResponse));
     }
 
