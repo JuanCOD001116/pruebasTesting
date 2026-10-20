@@ -2,3 +2,6 @@
 # aunque el checkout sea en Windows con core.autocrlf=true.
 gradlew text eol=lf
 *.sh text eol=lf
+
+# Lanzador de Windows: cmd.exe necesita CRLF para leer bien las etiquetas y lineas.
+verificar-todo.bat text eol=crlf
