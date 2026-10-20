@@ -182,3 +182,53 @@ Final: `./gradlew clean build` sobre el último commit de esta rama.
 `07-quality-gate-failed.png`, `08-issue-s3776.png`, `09-quality-gate-passed.png`,
 `10-measures-complexity.png` y `11-activity-historial.png`. Se toman desde el navegador (JaCoCo:
 `build/reports/jacoco/test/html/index.html`; resto: SonarCloud, PR #2 para 07–09).
+
+---
+
+## Karate — pruebas de aceptación (spec 13)
+
+> **Fecha:** 2026-10-20 · **Rama:** `test/karate-acceptance` · Verificación contra spec 13 §14 (definición de hecho) y §13 (reglas), con el método del spec 12 §2 y §6.
+
+### Resultado
+
+| Métrica | Valor |
+|---|---|
+| Escenarios del catálogo (A-01 … A-54) | 54 / 54 presentes, sin IDs duplicados |
+| Casos ejecutados (con `Scenario Outline`) | 86, 0 fallidos (antes de la verificación: 84) |
+| Features / helpers `@ignore` | 9 / 3 (solo en `common/`) |
+| Tiempo de Karate / `clean build` completo | ~30 s / ~2 min |
+| `gradlew test` ejecuta Karate | No (24 clases, ninguna de aceptación) |
+| Cobertura que lee Sonar con y sin aceptación | Idéntica: 99.9 % instr. / 98.0 % ramas |
+
+### Detalle por criterio
+
+| ID | Estado | Hallazgo | Acción | Commit |
+|---|---|---|---|---|
+| K-14.1a | ✅ | Los 54 escenarios existen (script sobre los `.feature`), cada uno con los tags del catálogo. | — | — |
+| K-14.1b | ✅ | `@ignore` solo en `common/create-task`, `change-status` y `patch-status-step` (helpers). | — | — |
+| K-14.1c | 🔧 | **A-40** aceptaba `sort=priority,desc` → `MEDIUM, LOW, HIGH` (orden alfabético del texto en BD): documentaba un bug en vez de detectarlo. | Bug corregido en producción (ver K-BUG) y escenario exige `HIGH, MEDIUM, LOW`. | `4413afa` |
+| K-14.1d | 🔧 | **A-16** no verificaba que el estado quedara persistido; **A-18** solo cubría 2 de los 4 estados (§13 pide todos); **A-35** podía afirmar más (lista vacía); **A-48** no comprobaba "a lo sumo 2 decimales" y, corrida sola, pasaba con 0/0 sin probar la fórmula; **A-54** usaba `contains` sobre el texto del JSON, que da por bueno `/api/tasks` por ser prefijo de otras rutas. | Escenarios ajustados al catálogo. | `523e728` |
+| K-14.2 | ✅ | `clean build` pasa e incluye `acceptanceTest`; `test` excluye el tag `acceptance`. | — | — |
+| K-14.3 | ✅ | Se generan `karate-summary.html`, HTML/XML/JSON por feature y el reporte Gradle; el workflow sube `build/karate-reports/` como artefacto. | — | — |
+| K-14.3b | ⬆️ | `actions/upload-artifact@v4` corre en Node 20 (§7 pide la mayor vigente). | `@v7` (node24). | `5ba49f9` |
+| K-14.4 | ✅ | Orden del pipeline: build → aceptación → resumen/artefacto (`if: always()`) → Sonar; sin `continue-on-error`. Mecanismo de fallo verificado en local: cambiar `status 400` por `200` en A-17 da 7 casos fallidos, el runner JUnit falla y Gradle sale con código 1 (cambio revertido). | — | — |
+| K-14.5 | ✅ | `sonar.coverage.jacoco.xmlReportPaths` solo apunta a `jacocoTestReport.xml`; `jacocoTestReport` y `jacocoTestCoverageVerification` dependen solo de `test`; la aceptación escribe `acceptanceTest.exec` aparte. El XML de `clean test` y el de `clean build` son idénticos. | — | — |
+| K-14.6 | ✅ | Limitación de `OVERDUE` documentada al inicio de `urgency.feature`. | — | — |
+| K-14.7 | 🔧 | `docs/pruebas-aceptacion/resumen.md` decía "ningún bug", presentaba el orden alfabético de A-40 como desviación aceptada y que `karate.config.dir` se configuraba en Gradle (no era así). | Actualizado: métricas reales, bug con su commit y desviaciones correctas. | (este commit) |
+| K-13.a | ✅ | No se modificó ni eliminó ninguna prueba existente (`git diff origin/main -- src/test` solo agrega archivos). | — | — |
+| K-13.b | ✅ | No se agregó código de producción para facilitar pruebas: ni endpoints de prueba ni perfiles especiales. El reloj fijo es un `@TestConfiguration` con `@Primary`; todos los consumidores reciben `Clock` por tipo. | — | — |
+| K-13.c | ✅ | Sin `Thread.sleep` ni esperas fijas; sin datos sensibles en los `.feature`. | — | — |
+| K-13.d | ✅ | Independencia: cada uno de los 9 features pasa ejecutado por separado, y A-48 pasa sola. | — | — |
+| K-5.2 | ⬆️ | El runner hacía `System.setProperty("karate.config.dir", "src/test/java/...")` (efecto global, ruta relativa al cwd) y parseaba `karate.options` a mano, código muerto porque Karate 1.5.1 ya lee esa propiedad y reemplaza los tags. `karate-config.js` tenía una fecha por defecto que duplicaba `FixedClockTestConfig.TODAY`. | `configDir("classpath:...")`, sin parseo manual ni fecha duplicada. `--tags @smoke` sigue funcionando (10 casos). | `673fa85` |
+| K-BUG | 🔧 | **Bug real encontrado por la aceptación:** `GET /api/tasks/search` ordenaba `priority` y `status` alfabéticamente (`EnumType.STRING`). | `TaskSpecifications.orderedBy(Sort)` ordena los enums por su posición declarada. `TaskSearchSortingIntegrationTest` (4 tests) fallaba antes y pasa después. | `d40e615` |
+
+### Desviaciones respecto al spec 13
+
+1. **Código de producción:** el único cambio en `src/main` es la corrección del bug de ordenamiento, permitida por §12.4 (test que lo reproduce + commit `fix`). No es código "para facilitar pruebas".
+2. **Helper `patch-status-step.feature`** adicional a la estructura de §4 (paso individual que usa `change-status.feature` para recorrer `path`).
+3. **A-18 con 4 filas** en vez de 2, por la regla §13 de cubrir todos los estados: por eso hay 86 casos.
+
+### Pendientes manuales (Karate)
+
+1. Revisar los commits de verificación y hacer **push** de `test/karate-acceptance`; el spec 13 §12.7 indica que el push lo hace el usuario. Luego abrir el PR y confirmar en *Checks* que el paso *Acceptance tests (Karate)* y el Quality Gate quedan en verde.
+2. Capturas de `docs/pruebas-aceptacion/evidencias/` (§11, 01–08): se toman desde el navegador y desde GitHub Actions.

@@ -6,16 +6,20 @@
 
 ## 1. Métricas de Ejecución
 
+Medidas con `gradlew.bat clean build` (incluye `acceptanceTest`) en la rama `test/karate-acceptance`.
+
 | Métrica | Valor |
 |---|---|
 | **Features ejecutadas** | 9 |
 | **Features ignoradas (helpers reutilizables)** | 3 (`create-task.feature`, `change-status.feature`, `patch-status-step.feature`) |
 | **Escenarios base definidos** | 54 (A-01 a A-54) |
-| **Casos / ejemplos ejecutados** | 84 |
-| **Casos pasados** | 84 (100 %) |
+| **Casos / ejemplos ejecutados** | 86 |
+| **Casos pasados** | 86 (100 %) |
 | **Casos fallidos** | 0 (0 %) |
-| **Tiempo de ejecución de escenarios (Karate)** | ~10.47 s |
-| **Tiempo transcurrido (incluyendo arranque Spring Boot)** | ~28.87 s |
+| **Tiempo transcurrido de Karate** | ~30 s |
+| **Tiempo de `gradlew.bat clean build` completo** | ~2 min |
+
+Cada feature pasa también ejecutado por separado (`-Dkarate.options="classpath:.../<feature>.feature"`), lo que confirma que ningún escenario depende de datos de otro.
 
 ---
 
@@ -25,7 +29,7 @@
 |---|---|---|---|
 | Operaciones CRUD de tareas | `tasks/crud.feature` | 9 | ✅ Pasaron todos |
 | Validación de entrada y manejo de errores | `tasks/validation.feature` | 9 | ✅ Pasaron todos |
-| Máquina de estados de una tarea | `status/status-transitions.feature` | 18 | ✅ Pasaron todos |
+| Máquina de estados de una tarea | `status/status-transitions.feature` | 20 | ✅ Pasaron todos |
 | Reglas de negocio para fecha límite (`dueDate`) | `duedate/due-date.feature` | 7 | ✅ Pasaron todos |
 | Urgencia calculada de tareas (`TaskUrgency`) | `duedate/urgency.feature` | 16 | ✅ Pasaron todos |
 | Búsqueda paginada, filtros y ordenamiento | `search/search.feature` | 13 | ✅ Pasaron todos |
@@ -37,25 +41,35 @@
 
 ## 3. Bugs Encontrados
 
-- **Código de producción:** Ninguno. La API cumplió con todas las especificaciones de negocio (CRUD, validaciones, transiciones de estado, rangos de fechas, cálculo de urgencia, especificaciones de búsqueda y resumen estadístico) sin requerir modificaciones en `src/main`.
-- **Mecanismo de fallo validado (Paso 12.5):** Se probó en local modificando intencionalmente `status 400` a `status 200` en el escenario A-17 de transiciones inválidas. Karate capturó los 7 fallos correctamente con HTTP 400 devuelto por el validador, y el cambio fue inmediatamente revertido (`git checkout`).
+| Bug | Escenario | Test que lo reproduce | Corrección |
+|---|---|---|---|
+| `GET /api/tasks/search?sort=priority,desc` devolvía `MEDIUM, LOW, HIGH`: como los enums se guardan como texto (`EnumType.STRING`), la base ordenaba alfabéticamente. Lo mismo ocurría con `status` (`CANCELLED, DONE, IN_PROGRESS, PENDING`). | A-40 | `TaskSearchSortingIntegrationTest` (4 tests; fallaban antes del cambio) | `d40e615` — `TaskSpecifications.orderedBy(Sort)` ordena los enums por su posición declarada (`LOW < MEDIUM < HIGH`; `PENDING → IN_PROGRESS → DONE → CANCELLED`). |
+
+En la primera versión de esta rama, el escenario A-40 se había ajustado al orden alfabético de la base, es decir, documentaba el bug en lugar de detectarlo. La verificación lo corrigió (`4413afa`): ahora exige `HIGH, MEDIUM, LOW`.
+
+**Mecanismo de fallo validado (§12.5):** se cambió en local `Then status 400` por `Then status 200` en A-17; Karate reportó los 7 casos como fallidos y el cambio se revirtió con `git checkout`.
 
 ---
 
 ## 4. Desviaciones y Adaptaciones Técnicas Respecto al Spec
 
-1. **Ubicación de `karate-config.js` (`karate.config.dir`):**
-   - Karate busca por defecto `karate-config.js` en la raíz del classpath (`src/test/java/karate-config.js` o `src/test/resources/karate-config.js`).
-   - Para mantener la estructura definida en la sección 4 (`src/test/java/com/example/taskmanager/acceptance/karate-config.js`), se configuró la propiedad del sistema `karate.config.dir` tanto en la tarea de Gradle como en `AcceptanceTestRunner.java`.
+1. **Ubicación de `karate-config.js`:**
+   - Karate busca `karate-config.js` por defecto en la raíz del classpath. Para mantener la estructura de §4 (`acceptance/karate-config.js`), el runner usa `Runner.Builder.configDir("classpath:com/example/taskmanager/acceptance")`, que no depende del directorio de trabajo.
 
-2. **Aserción de código HTTP dinámico en `patch-status-step.feature`:**
-   - La palabra clave `Then status <int>` de Karate requiere sintácticamente un valor numérico literal. Para permitir códigos esperados dinámicos en los helpers parametrizados se utilizó la variable de entorno nativa de Karate `Then match responseStatus == expected`.
+2. **Filtro por tags (`-Dkarate.options`):**
+   - Karate 1.5.1 lee `karate.options` por sí mismo y reemplaza los tags del runner, así que no hace falta leerla a mano (§5.2). La tarea Gradle solo reenvía la propiedad al proceso de pruebas. Verificado: `--tags @smoke` ejecuta 10 casos.
 
-3. **Ordenamiento por prioridad en base de datos (A-40):**
-   - La entidad `Task` almacena la prioridad mediante `@Enumerated(EnumType.STRING)` como texto (`VARCHAR`). En SQL, el ordenamiento descendente (`ORDER BY priority DESC`) opera alfabéticamente: `MEDIUM` > `LOW` > `HIGH`. Se alineó la aserción del escenario A-40 con dicho orden real de base de datos.
+3. **Helper adicional `patch-status-step.feature`:**
+   - `change-status.feature` recorre una lista de estados (`path`, §6.9); cada paso individual vive en `common/patch-status-step.feature` (también `@ignore`). Como `Then status <n>` exige un literal, el código esperado dinámico se valida con `match responseStatus == expected`.
 
-4. **Limitación de estado `OVERDUE` (Sección 6.5):**
-   - Dado que las reglas de negocio R7 y R8 impiden asignar fechas límite en el pasado vía API y el reloj está fijado en `2030-01-15`, el estado `OVERDUE` y el filtro `overdue=true` no son alcanzables por HTTP. Esta lógica está cubierta por pruebas unitarias (`TaskUrgencyEvaluatorTest`). El escenario A-35 valida la parte alcanzable: `GET /api/tasks?overdue=true` responde 200 y no retorna tareas activas vigentes creadas en la prueba.
+4. **Escenario A-18 ampliado:**
+   - Además de `PENDING→PENDING` e `IN_PROGRESS→IN_PROGRESS` (catálogo), cubre `DONE→DONE` y `CANCELLED→CANCELLED`, como exige §13 ("todos los estados") y la matriz del spec 01 (TC-12, TC-17). Por eso hay 86 casos y no 84.
+
+5. **Limitación de estado `OVERDUE` (§6.5):**
+   - Las reglas R7 y R8 impiden asignar fechas límite pasadas vía API y el reloj está fijo en `2030-01-15`, así que `OVERDUE` y `overdue=true` no son alcanzables por HTTP. La lógica está cubierta por pruebas unitarias (`TaskUrgencyEvaluatorTest`, `OverdueRuleTest`, `TaskSpecificationsTest`). A-35 valida la parte alcanzable: `GET /api/tasks?overdue=true` responde 200 con una lista vacía. Documentado al inicio de `urgency.feature`.
+
+6. **Código de producción:**
+   - El spec prohíbe código de producción *para facilitar las pruebas*. El único cambio en `src/main` es la corrección del bug de §3, hecha según §12.4 (test que lo reproduce + commit `fix`).
 
 ---
 
@@ -66,4 +80,8 @@
 - **Reporte JUnit XML:** `build/karate-reports/*.xml`
 - **Reporte Cucumber JSON:** `build/karate-reports/*.json`
 - **Reporte de la Tarea Gradle:** `build/reports/tests/acceptanceTest/index.html`
-- **Pipeline CI (`sonarcloud.yml`):** Configurado para ejecutar `./gradlew clean build -x acceptanceTest`, luego `./gradlew acceptanceTest`, publicar el resumen en `$GITHUB_STEP_SUMMARY`, subir los reportes como artefacto `karate-reports` y finalmente ejecutar `./gradlew sonar`.
+- **Pipeline CI (`sonarcloud.yml`):** ejecuta `./gradlew clean build -x acceptanceTest`, luego `./gradlew acceptanceTest`, publica el resumen en `$GITHUB_STEP_SUMMARY`, sube los reportes como artefacto `karate-reports` (`actions/upload-artifact@v7`) y finalmente ejecuta `./gradlew sonar`.
+
+## 6. Cobertura y SonarCloud
+
+La cobertura enviada a SonarCloud sigue saliendo solo de `jacocoTestReport.xml` (ejecución de `test`). La aceptación escribe su propio `build/jacoco/acceptanceTest.exec`, que no se usa en ningún reporte. Verificado comparando el XML de `clean test` con el de `clean build` (que sí ejecuta Karate): son **idénticos** (99.9 % de instrucciones, 98.0 % de ramas).
