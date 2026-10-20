@@ -215,6 +215,17 @@ expone la complejidad por método; la regla `java:S1541` (umbral 10) no tiene is
 Máxima complejidad ciclomática por método en producción: **7** (`validate`). Cobertura JaCoCo
 final: 99.9 % de instrucciones y 97.8 % de ramas (164 pruebas).
 
+### 5.4 Cambios de métricas en el cierre del proyecto
+
+| Métrica | Tras spec 12 (PR #3) | Tras Karate (PR #4, `b7786e1`) | Cierre final | Qué cambió y por qué |
+|---|:---:|:---:|:---:|---|
+| Pruebas unitarias/integración | 164 | 168 | 168 | +4 de `TaskSearchSortingIntegrationTest` (bug de ordenamiento hallado por Karate, `d40e615`). |
+| Casos de aceptación (Karate) | — | 86 | 86 | Capa nueva del spec 13; no aporta cobertura a Sonar. |
+| Cobertura JaCoCo instr. / ramas | 99.9 % / 97.8 % | 99.9 % / 98.0 % | 99.9 % / 98.0 % | Ramas 92 → 98: las 6 nuevas de `toOrder` (ternario) y `sortKey` (`if` + `for`), todas cubiertas. |
+| Instrucciones medidas por JaCoCo | 1 417 | 1 510 | 1 444 | Los 7 constructores de inyección vuelven a ser de Lombok (`e0ebf4d`) y JaCoCo excluye el código `@Generated`; el porcentaje no cambia. |
+| Complejidad ciclomática total (Sonar, `main`) | 142 | 151 | ≈ 144 (se confirma en el análisis del PR) | +9 por el ordenamiento nuevo (`orderedBy`, `toOrder`, `sortKey`) del PR #4; −7 al eliminar los 7 constructores escritos a mano (cada uno suma 1 en Sonar). |
+| Máx. V(G) por método | 7 | 7 | 7 | Sin cambios (`TaskStatusTransitionValidator.validate`). |
+
 ---
 
 ## 6. Complejidad Cognitiva (Spec 11) y Caso de Estudio
@@ -351,7 +362,7 @@ Durante el despliegue del pipeline y la auditoría de calidad se presentaron las
 7. **Versiones de Framework y Plugins:**  
    El proyecto nunca pasó a Spring Boot 3.4: `build.gradle` siempre declaró `3.3.0` (verificado en todo el historial). En la verificación final se actualizó al último parche de la línea que fijan los specs, `3.3.13` (correcciones de seguridad de Spring Framework 6.1.21 y Tomcat 10.1.42), y el plugin `org.sonarqube` a `7.5.0.8588`, la última versión publicada que pide el spec 05 §5.2.
 8. **Compatibilidad de Constructores con IDEs y Regla `S107`:**  
-   `Task` y los DTO conservan `@NoArgsConstructor`/`@AllArgsConstructor` de Lombok: escribir a mano el constructor de 9 parámetros de `Task` violaría `java:S107` (`constructorMax = 7`), mientras que el código generado por Lombok no se analiza. Los servicios mantienen constructores explícitos de inyección (≤ 6 parámetros), equivalentes a `@RequiredArgsConstructor`. Lombok dejó de fijarse en `1.18.36`: lo gestiona el BOM de Spring Boot (`1.18.38` con 3.3.13), como exige H-10.
+   `Task` y los DTO conservan `@NoArgsConstructor`/`@AllArgsConstructor` de Lombok: escribir a mano el constructor de 9 parámetros de `Task` violaría `java:S107` (`constructorMax = 7`), mientras que el código generado por Lombok no se analiza. En el cierre del proyecto los 7 componentes inyectados (controller, handler, servicios, `TaskUrgencyEvaluator`, `DueSoonRule`, `TaskDueDateValidator`) volvieron a `@RequiredArgsConstructor` (`e0ebf4d`): el falso positivo del IDE que motivó `3a0a002` se resuelve por configuración de usuario (README), y así todo el proyecto sigue la convención Lombok del spec 09. Lombok dejó de fijarse en `1.18.36`: lo gestiona el BOM de Spring Boot (`1.18.38` con 3.3.13), como exige H-10.
 9. **Constructor Secundario de Compatibilidad en `TaskUrgencyEvaluator` (resuelto):**  
    Durante el Commit B, `TaskUrgencyEvaluator` tuvo un constructor secundario que instanciaba internamente las 4 reglas para no modificar `src/test/`. Cerrado el caso de estudio, se eliminó: el evaluador depende solo de `List<UrgencyRule>` y los tests construyen la lista explícitamente; un test con `ApplicationContextRunner` verifica que Spring respeta el orden de `@Order`.
 
