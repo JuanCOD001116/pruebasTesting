@@ -2,6 +2,7 @@ package com.example.taskmanager.service.urgency;
 
 import com.example.taskmanager.model.Task;
 import com.example.taskmanager.model.TaskUrgency;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
@@ -10,15 +11,11 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
+@RequiredArgsConstructor
 public class TaskUrgencyEvaluator {
 
     private final List<UrgencyRule> rules;
     private final Clock clock;
-
-    public TaskUrgencyEvaluator(List<UrgencyRule> rules, Clock clock) {
-        this.rules = rules;
-        this.clock = clock;
-    }
 
     public TaskUrgency evaluate(Task task) {
         LocalDate today = LocalDate.now(clock);
